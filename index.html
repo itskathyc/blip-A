@@ -1,0 +1,202 @@
+<!DOCTYPE html>
+<html lang="ko">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>blip</title>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+
+<body>
+  <!-- 메인 캔버스 (제스처를 받는 영역) -->
+  <main id="stage">
+
+    <!-- 배경: YouTube watch 화면 재현 (시각 전용, pointer-events:none) -->
+    <div id="yt" aria-hidden="true">
+      <!-- 상단바 -->
+      <div class="yt-top">
+        <div class="yt-top__left">
+          <span class="yt-burger">☰</span>
+          <span class="yt-logo"><span class="yt-logo__play">▶</span>YouTube</span>
+        </div>
+        <div class="yt-search">
+          <input class="yt-search__in" value="소니 a7m4 세팅" readonly />
+          <span class="yt-search__btn">🔍</span>
+        </div>
+        <div class="yt-top__right">
+          <span class="yt-ico">⊕</span>
+          <span class="yt-ico">🔔</span>
+          <span class="yt-avatar">K</span>
+        </div>
+      </div>
+
+      <!-- 본문 2단 -->
+      <div class="yt-main">
+        <div class="yt-primary">
+          <div class="yt-player">
+            <iframe id="ytPlayer"
+              src="https://www.youtube.com/embed/pDzT63SCIHY?autoplay=1&mute=1&playsinline=1&rel=0&modestbranding=1&enablejsapi=1"
+              title="A7m4 소니 카메라 최적세팅편 / 사진 동영상" frameborder="0"
+              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"></iframe>
+          </div>
+
+          <h1 class="yt-title">A7m4 소니 카메라 최적세팅편 / 사진 동영상</h1>
+
+          <div class="yt-meta">
+            <div class="yt-channel">
+              <span class="yt-channel__pic">탁</span>
+              <span class="yt-channel__info">
+                <b>탁호준의 로케트펀치</b>
+                <small>구독자 12.3만명</small>
+              </span>
+              <span class="yt-subscribe">구독</span>
+            </div>
+            <div class="yt-actions">
+              <span class="yt-chip">👍 4.2천　👎</span>
+              <span class="yt-chip">↗ 공유</span>
+              <span class="yt-chip">⤓ 저장</span>
+              <span class="yt-chip">···</span>
+            </div>
+          </div>
+
+          <div class="yt-desc">
+            <b>조회수 18만회 · 1년 전</b>
+            <p>소니 A7M4 사진/동영상 최적 세팅 가이드. 노출, 화이트밸런스, 픽처프로파일,
+              오토포커스 설정까지 한 번에 정리했습니다. #소니 #a7m4 #카메라세팅</p>
+          </div>
+
+          <div class="yt-comments">
+            <div class="yt-comments__head">댓글 1,234개</div>
+            <div class="yt-comment">
+              <span class="yt-comment__pic">A</span>
+              <span class="yt-comment__body"><b>@user_kim</b> 덕분에 세팅 한 번에 끝냈어요 🙏</span>
+            </div>
+            <div class="yt-comment">
+              <span class="yt-comment__pic">B</span>
+              <span class="yt-comment__body"><b>@photo_lee</b> 픽처프로파일 부분이 제일 유용했습니다.</span>
+            </div>
+            <div class="yt-comment">
+              <span class="yt-comment__pic">C</span>
+              <span class="yt-comment__body"><b>@minji</b> 영상 퀄리티 미쳤다…</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="yt-secondary" id="ytRecos"></div>
+      </div>
+    </div>
+
+    <!-- 제스처 힌트 (코너) -->
+    <div class="hint hint--corner">
+      <b>blip</b>
+      <span>좌→우 아톰 · 아래→위 편집 · 길게눌러 파이 · 좌+우 캡처</span>
+    </div>
+  </main>
+
+  <!-- 좌측 아톰 패널 -->
+  <aside id="atomsPanel" class="panel panel--left" aria-hidden="true">
+    <header class="panel__bar">
+      <span class="panel__title">Atoms</span>
+      <button class="panel__close" data-close="atomsPanel" title="닫기">×</button>
+    </header>
+
+    <!-- 필름롤 캐러셀 (Blip A ~ Blip J) -->
+    <div class="roll-carousel" id="rollCarousel">
+      <div class="roll-carousel__track" id="rollTrack"></div>
+      <div class="roll-carousel__hint">드래그 · 휠로 회전 · 롤 클릭해 선택</div>
+    </div>
+
+    <!-- 좌: 필름 스트립(3/5) · 우: 아톰 노트(2/5) -->
+    <div class="atom-body">
+      <div class="filmstrip" id="filmstrip"></div>
+      <div class="atom-notes" id="atomNotes"></div>
+    </div>
+  </aside>
+
+  <!-- 하단 편집창 -->
+  <section id="editorPanel" class="panel panel--bottom" aria-hidden="true">
+    <header class="panel__bar">
+      <!-- URL / 맥락 히스토리 바 -->
+      <div class="brl-wrap" id="brlWrap">
+        <div class="brl" id="brl">
+          <div class="brl__view brl__view--url">
+            <svg class="brl__lock" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+              aria-hidden="true">
+              <rect x="5" y="11" width="14" height="9" rx="2" />
+              <path d="M8 11V7a4 4 0 0 1 8 0v4" />
+            </svg>
+            <span class="brl__url">https://www.youtube.com/watch?v=pDzT63SCIHY</span>
+          </div>
+          <div class="brl__view brl__view--history">
+            <span class="brl__crumb">Youtube</span>
+            <span class="brl__sep">›</span>
+            <span class="brl__crumb">소니 a7m4세팅
+              <span class="brl__act brl__act--search" title="검색">
+                <svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.4" aria-hidden="true">
+                  <circle cx="11" cy="11" r="6" />
+                  <path d="M20 20l-4-4" />
+                </svg>
+              </span>
+            </span>
+            <span class="brl__sep">›</span>
+            <span class="brl__crumb">A7m4소니카메라최적세팅편/사진동영상
+              <span class="brl__act brl__act--select" title="선택">
+                <svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3" aria-hidden="true">
+                  <path d="M5 12l5 5L19 7" />
+                </svg>
+              </span>
+            </span>
+          </div>
+        </div>
+        <button class="brl-toggle" id="brlToggle" type="button" role="switch" aria-checked="false"
+          title="URL / History">
+          <span class="brl-toggle__knob"></span>
+        </button>
+      </div>
+
+      <div class="panel__actions">
+        <button class="panel__full" data-full="editorPanel" title="전체화면">
+          <svg width="15" height="13" viewBox="0 0 15 13" fill="none" aria-hidden="true">
+            <rect x="1" y="1" width="13" height="11" rx="1.5" stroke="currentColor" stroke-width="1.4" />
+            <path d="M1 4h13" stroke="currentColor" stroke-width="1.4" />
+            <circle cx="3" cy="2.5" r=".7" fill="currentColor" />
+            <circle cx="5" cy="2.5" r=".7" fill="currentColor" />
+          </svg>
+        </button>
+        <button class="panel__close" data-close="editorPanel" title="닫기">×</button>
+      </div>
+    </header>
+    <div class="panel__body">
+      <div class="mm-wrap" id="mmWrap">
+        <div class="mm" id="mindmap"></div>
+        <div class="mm-detail" id="mmDetail"></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 드래그 방향 표시 화살표 -->
+  <div id="dragGhost" class="drag-ghost"></div>
+
+  <!-- 파이메뉴 -->
+  <div id="pieMenu" class="pie" aria-hidden="true">
+    <div class="pie__ring"></div>
+    <svg class="pie__svg" viewBox="-100 -100 200 200"></svg>
+  </div>
+
+  <!-- 카메라 캡처 프레임 -->
+  <div id="captureFrame" class="capture">
+    <div class="capture__bar capture__bar--top"></div>
+    <div class="capture__bar capture__bar--bottom"></div>
+  </div>
+
+  <script src="js/atom.js"></script>
+  <script src="js/editor.js"></script>
+  <script src="js/atomShelf.js"></script>
+  <script src="js/mindmap.js"></script>
+  <script src="js/freezeMode.js"></script>
+  <script src="js/browser.js"></script>
+  <script src="js/main.js"></script>
+</body>
+
+</html>
