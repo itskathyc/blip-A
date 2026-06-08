@@ -146,6 +146,7 @@ window.Blip = window.Blip || {};
 
     // ---------------- 선택 / 분할 ----------------
     selectNode(n) {
+      if (this.onSelect) this.onSelect(n);   // 미니맵이면 펼치도록 알림
       this.selected = n;
       this.wrap.classList.add('is-split');
       this._renderDetail();

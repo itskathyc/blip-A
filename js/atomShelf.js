@@ -37,7 +37,11 @@ window.Blip = window.Blip || {};
       this.renderNotes();
     }
 
-    open() { this.panel.classList.add('is-open'); }
+    open() {
+      this.panel.classList.add('is-open');
+      this.renderStrip();        // 열 때 최신 캡처/메모를 반영
+      this.renderNotes();
+    }
     close() { this.panel.classList.remove('is-open'); }
     get isOpen() { return this.panel.classList.contains('is-open'); }
 
@@ -144,12 +148,12 @@ window.Blip = window.Blip || {};
     }
 
     // ---------- 필름 스트립 ----------
-    addCapture(atom) {
+    addCapture(atom, open = true) {
       this.rolls[this.activeIndex].add(atom);
       this.selectedAtom = atom;                 // 새 캡처 자동 선택
       this.renderStrip(true);
       this.renderNotes();
-      this.open();
+      if (open) this.open();                     // open=false → 나중에 atom 영역 열 때 등장
     }
 
     selectAtom(atom) {
@@ -250,7 +254,7 @@ window.Blip = window.Blip || {};
       }
       this.notes.innerHTML = `
         <div class="atom-notes__head">📝 #${atom.id} · ${atom.time}</div>
-        <textarea class="atom-notes__area" placeholder="이 atom 을 왜 편집했는지 등 메모…"></textarea>`;
+        <textarea class="atom-notes__area" placeholder="memo"></textarea>`;
       const area = this.notes.querySelector('.atom-notes__area');
       area.value = atom.note;
       area.addEventListener('input', () => { atom.note = area.value; });

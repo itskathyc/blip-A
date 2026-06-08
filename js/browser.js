@@ -16,7 +16,7 @@ window.Blip = window.Blip || {};
       this.el = el;
       this.svg = el.querySelector('.pie__svg');
       this.onSelect = onSelect || function () { };
-      this.labels = ['Freeze', 'Copy', 'Search', 'Save', 'Share', 'Delete'];
+      this.labels = ['Freeze', 'HUD', 'Search', 'Save', 'Share', 'Delete'];
       this._build();
       document.addEventListener('mousedown', (e) => {
         if (this.isOpen && !this.el.contains(e.target)) this.close();
@@ -165,8 +165,11 @@ window.Blip = window.Blip || {};
         iframe: document.getElementById('ytPlayer'),
       });
 
+      this.hud = new Blip.Hud(document.getElementById('ytRecos'));
+
       this.pie = new PieMenu(opts.pieEl, (label) => {
         if (label === 'Freeze') this.freeze.enter();
+        else if (label === 'HUD') this.hud.toggle();
       });
 
       this.MOVE_CANCEL = 12;
@@ -264,7 +267,10 @@ window.Blip = window.Blip || {};
       const image = await this.capture.grab();
       this.captureEl.classList.add('is-shooting');
       setTimeout(() => this.captureEl.classList.remove('is-shooting'), 150);
-      this.atoms.addCapture(new Blip.Atom({ image }));
+      const atom = new Blip.Atom({ image });
+      this.atoms.addCapture(atom, false);        // 패널은 자동으로 열지 않음
+      // 캡처 순간 미니맵 위에 메모 입력창 (입력 즉시 저장 · 3초 무입력 시 메모 없음)
+      if (this.editor && this.editor.captureNote) this.editor.captureNote(atom);
     }
   }
 

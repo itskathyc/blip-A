@@ -56,11 +56,15 @@ window.addEventListener('DOMContentLoaded', () => {
     document.getElementById('mmWrap'),
   );
 
+  // 미니맵 노드 선택 → 작은 미니맵이면 펼쳐서 보기
+  mindmap.onSelect = () => { if (editor.isMinimap) editor.open(); };
+
   editor.onChange = () => {
     applyEditorSpace();
-    if (editor.isOpen) requestAnimationFrame(() => mindmap.fit());
+    requestAnimationFrame(() => mindmap.fit());   // 미니맵/펼침/전체화면 모두 맞춤
   };
-  window.addEventListener('resize', () => { applyEditorSpace(); if (editor.isOpen) mindmap.fit(); });
+  window.addEventListener('resize', () => { applyEditorSpace(); mindmap.fit(); });
+  requestAnimationFrame(() => mindmap.fit());      // 최초 로드 시 미니맵에 맞춤
 
   // 에디터 열린 동안 배경 위에서 휠 → 실제 스크롤(가려진 하단 끌어올리기)
   stage.addEventListener('wheel', (e) => {
