@@ -112,13 +112,18 @@ window.Blip = window.Blip || {};
     }
 
     // ---------------- 캡처 메모 ----------------
-    captureNote(atom) {
+    captureNote(atom, opts = {}) {
       const box = this.capNote;
       if (!box) return;
       if (this._noteCleanup) this._noteCleanup();   // 이전 메모창 정리
 
       const area = box.querySelector('.capnote__area');
       const timerEl = box.querySelector('.capnote__timer');
+      const titleEl = box.querySelector('.capnote__title');
+      // 호출 맥락(캡처 / 클릭)에 맞춰 제목·안내문 교체
+      if (titleEl) titleEl.textContent = opts.title || '📝 캡처 메모';
+      area.placeholder = opts.placeholder ||
+        '이 캡처를 왜 남겼는지… (3초간 입력이 없으면 메모 없이 닫힘 · Enter 저장)';
       area.value = atom.note || '';
 
       box.classList.add('is-open');

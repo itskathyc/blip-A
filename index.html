@@ -12,8 +12,11 @@
   <!-- 메인 캔버스 (제스처를 받는 영역) -->
   <main id="stage">
 
+    <!-- 배경: 스타트페이지 — 나의 책장(팔로잉 SNS 책장) · 홈 -->
+    <div id="start" aria-hidden="true"></div>
+
     <!-- 배경: YouTube watch 화면 재현 (시각 전용, pointer-events:none) -->
-    <div id="yt" aria-hidden="true">
+    <div id="yt" aria-hidden="true" hidden>
       <!-- 상단바 -->
       <div class="yt-top">
         <div class="yt-top__left">
@@ -84,6 +87,56 @@
         </div>
 
         <div class="yt-secondary" id="ytRecos"></div>
+      </div>
+    </div>
+
+    <!-- 배경: Instagram 프로필 화면 재현 (시각 전용) — 합정다락 -->
+    <div id="ig" aria-hidden="true" hidden>
+      <!-- 상단바 -->
+      <div class="ig-top">
+        <div class="ig-top__logo">Instagram</div>
+        <div class="ig-top__search"><span>🔍</span> 검색</div>
+        <div class="ig-top__icons"><span>🏠</span><span>✈️</span><span>➕</span><span>❤️</span><span class="ig-top__me">다</span></div>
+      </div>
+
+      <div class="ig-wrap">
+        <!-- 프로필 헤더 -->
+        <header class="ig-head">
+          <div class="ig-head__pic"><div class="ig-avatar">다락</div></div>
+          <div class="ig-head__info">
+            <div class="ig-head__row1">
+              <span class="ig-username">hapjeong_darak</span>
+              <button class="ig-btn ig-btn--follow">팔로우</button>
+              <button class="ig-btn">메시지</button>
+              <button class="ig-btn ig-btn--icon">▾</button>
+            </div>
+            <div class="ig-stats">
+              <span><b>487</b> 게시물</span>
+              <span><b>1.2만</b> 팔로워</span>
+              <span><b>312</b> 팔로잉</span>
+            </div>
+            <div class="ig-bio">
+              <b>합정다락 ☕️📚</b>
+              <p>합정동 골목 끝 작은 다락방<br>
+                책과 커피가 있는 느린 오후<br>
+                🕯 목–일 13:00–21:00 · 서울 마포구 합정동</p>
+              <a class="ig-bio__link">linktr.ee/hapjeong_darak</a>
+            </div>
+          </div>
+        </header>
+
+        <!-- 스토리 하이라이트 -->
+        <div class="ig-highlights" id="igHighlights"></div>
+
+        <!-- 탭 -->
+        <div class="ig-tabs">
+          <span class="ig-tab is-on">▦ 게시물</span>
+          <span class="ig-tab">🎬 릴스</span>
+          <span class="ig-tab">👤 태그됨</span>
+        </div>
+
+        <!-- 게시물 그리드 -->
+        <div class="ig-grid" id="igGrid"></div>
       </div>
     </div>
 
@@ -187,6 +240,9 @@
       placeholder="이 캡처를 왜 남겼는지… (3초간 입력이 없으면 메모 없이 닫힘 · Enter 저장)"></textarea>
   </div>
 
+  <!-- Garden — 나만의 통합 플랫폼 (좌→우 드래그로 등장) -->
+  <aside id="gardenPanel" class="garden" aria-hidden="true"></aside>
+
   <!-- 드래그 방향 표시 화살표 -->
   <div id="dragGhost" class="drag-ghost"></div>
 
@@ -202,9 +258,11 @@
     <div class="capture__bar capture__bar--bottom"></div>
   </div>
 
+  <script src="js/startpage.js"></script>
   <script src="js/atom.js"></script>
   <script src="js/editor.js"></script>
   <script src="js/atomShelf.js"></script>
+  <script src="js/garden.js"></script>
   <script src="js/mindmap.js"></script>
   <script src="js/freezeMode.js"></script>
   <script src="js/hud.js"></script>

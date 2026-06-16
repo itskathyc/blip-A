@@ -5,9 +5,10 @@ window.addEventListener('DOMContentLoaded', () => {
   // 컴포넌트 인스턴스
   const atomShelf = new Blip.AtomShelf(document.getElementById('atomsPanel'));
   const editor    = new Blip.Editor(document.getElementById('editorPanel'));
+  const garden    = new Blip.Garden(document.getElementById('gardenPanel'), { atomShelf });
   const browser   = new Blip.Browser({
     stage:     document.getElementById('stage'),
-    atomShelf, editor,
+    atomShelf, editor, garden,
     pieEl:     document.getElementById('pieMenu'),
     captureEl: document.getElementById('captureFrame'),
     ghostEl:   document.getElementById('dragGhost'),
@@ -73,8 +74,24 @@ window.addEventListener('DOMContentLoaded', () => {
     yt.scrollTop += e.deltaY;                    // 브라우저가 0~max 로 클램프
   }, { passive: false });
 
+  // 스타트페이지(좌측 하단 My/Cheddar) → blip 가든 등장
+  document.addEventListener('blip:openGarden', () => garden.open());
+
   // 배경 YouTube 추천 영상 채우기 (장식)
   buildRecos();
+  // 배경 Instagram 프로필(합정다락) 채우기
+  buildInstagram();
+
+  // 페이지 전환은 클릭 스위처가 아니라 제스처(플립/홈)로만 — 프로그램용 헬퍼
+  const pages = {
+    start: document.getElementById('start'),
+    yt: document.getElementById('yt'),
+    ig: document.getElementById('ig'),
+  };
+  window.Blip = window.Blip || {};
+  window.Blip.showPage = (which) => {
+    for (const k in pages) { if (pages[k]) pages[k].hidden = (k !== which); }
+  };
 
   function buildRecos() {
     const box = document.getElementById('ytRecos');
@@ -102,5 +119,54 @@ window.addEventListener('DOMContentLoaded', () => {
       frag.appendChild(el);
     }
     box.appendChild(frag);
+  }
+
+  // ── Instagram (합정다락) 프로필 배경 ──
+  function buildInstagram() {
+    const hlBox = document.getElementById('igHighlights');
+    if (hlBox) {
+      const hls = [
+        ['공간', 'linear-gradient(135deg,#caa472,#7c5436)'],
+        ['메뉴', 'linear-gradient(135deg,#8a5a3b,#3a2415)'],
+        ['책방', 'linear-gradient(135deg,#6b7b5a,#2f3a25)'],
+        ['모임', 'linear-gradient(135deg,#9a6b8a,#3a1f33)'],
+        ['소식', 'linear-gradient(135deg,#5a6b8a,#1f2a3a)'],
+      ];
+      const f = document.createDocumentFragment();
+      for (const [name, bg] of hls) {
+        const el = document.createElement('div');
+        el.className = 'ig-hl';
+        el.innerHTML = `<div class="ig-hl__ring" style="background-image:${bg}"></div><div class="ig-hl__name">${name}</div>`;
+        f.appendChild(el);
+      }
+      hlBox.appendChild(f);
+    }
+
+    const grid = document.getElementById('igGrid');
+    if (grid) {
+      const posts = [
+        ['창가 자리의 오후 햇살 ☀️', 'linear-gradient(135deg,#e8cfa8,#a87b4e)'],
+        ['이번 주 신간 입고 📚', 'linear-gradient(135deg,#b89b78,#5c4225)'],
+        ['핸드드립 한 잔 ☕️', 'linear-gradient(135deg,#7a5236,#2c1a0e)'],
+        ['다락 책모임 모집', 'linear-gradient(135deg,#8a7fa0,#34294a)'],
+        ['비 오는 날의 다락', 'linear-gradient(135deg,#6b7785,#2a3340)'],
+        ['오늘의 디저트 🍰', 'linear-gradient(135deg,#d8a0a8,#7a3f4a)'],
+        ['골목 끝 작은 간판', 'linear-gradient(135deg,#9aa17a,#454d2e)'],
+        ['따뜻한 조명 아래', 'linear-gradient(135deg,#caa05a,#6e4a18)'],
+        ['주말 라이브 음악 🎶', 'linear-gradient(135deg,#7a6ba0,#2e2348)'],
+        ['다락의 아침', 'linear-gradient(135deg,#cdbba0,#7d6a4a)'],
+        ['손님이 남긴 메모', 'linear-gradient(135deg,#a8b0a0,#4a544a)'],
+        ['겨울 시즌 메뉴', 'linear-gradient(135deg,#8a9bb0,#2f3e52)'],
+      ];
+      const f = document.createDocumentFragment();
+      for (const [cap, bg] of posts) {
+        const el = document.createElement('div');
+        el.className = 'ig-cell';
+        el.style.backgroundImage = bg;
+        el.innerHTML = `<div class="ig-cell__cap">${cap}</div>`;
+        f.appendChild(el);
+      }
+      grid.appendChild(f);
+    }
   }
 });

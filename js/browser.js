@@ -142,8 +142,8 @@ window.Blip = window.Blip || {};
   //  Browser — 제스처 파이프라인
   // =====================================================
   const GHOST = {
-    right: '→  Atoms',
-    left: '←  Close Atoms',
+    right: '→  Garden',
+    left: '←  Close Garden',
     up: '↑  Editor',
     down: '↓  Close Editor',
   };
@@ -152,6 +152,7 @@ window.Blip = window.Blip || {};
     constructor(opts) {
       this.stage = opts.stage;
       this.atoms = opts.atomShelf;
+      this.garden = opts.garden;
       this.editor = opts.editor;
       this.ghost = opts.ghostEl;
       this.captureEl = opts.captureEl;
@@ -160,6 +161,7 @@ window.Blip = window.Blip || {};
       this.freeze = new Blip.FreezeMode({
         root: document.getElementById('yt'),
         atomShelf: this.atoms,
+        garden: this.garden,
         editor: this.editor,
         capture: this.capture,
         iframe: document.getElementById('ytPlayer'),
@@ -250,8 +252,8 @@ window.Blip = window.Blip || {};
           const dx = e.clientX - this.startX;
           const dy = e.clientY - this.startY;
           const horizontal = Math.abs(dx) > Math.abs(dy);
-          if (horizontal && dx > this.COMMIT) this.atoms.open();
-          else if (horizontal && dx < -this.COMMIT) this.atoms.close();
+          if (horizontal && dx > this.COMMIT) this.garden.open();
+          else if (horizontal && dx < -this.COMMIT) this.garden.close();
           else if (!horizontal && dy < -window.innerHeight * 0.6) this.editor.openFull();  // 위로 쭉 → 전체화면
           else if (!horizontal && dy < -this.COMMIT) this.editor.open();
           else if (!horizontal && dy > this.COMMIT) this.editor.close();
@@ -269,6 +271,7 @@ window.Blip = window.Blip || {};
       setTimeout(() => this.captureEl.classList.remove('is-shooting'), 150);
       const atom = new Blip.Atom({ image });
       this.atoms.addCapture(atom, false);        // 패널은 자동으로 열지 않음
+      if (this.garden) this.garden.addCapture(atom);   // garden 캔버스에 atom 카드로 표시
       // 캡처 순간 미니맵 위에 메모 입력창 (입력 즉시 저장 · 3초 무입력 시 메모 없음)
       if (this.editor && this.editor.captureNote) this.editor.captureNote(atom);
     }
