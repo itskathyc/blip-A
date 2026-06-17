@@ -304,19 +304,10 @@
     const spin = () => { if (!dragging) { rot = (rot + 0.35) % 360; setRot(rot); } requestAnimationFrame(spin); };
     requestAnimationFrame(spin);
 
-    // --p 를 toP 까지 애니메이션한 뒤 정리
-    const settle = (toP, after) => {
-      sp.classList.add('is-anim');
-      sp.style.setProperty('--p', String(toP));
-      const done = () => { sp.removeEventListener('transitionend', done); sp.classList.remove('is-anim'); after(); };
-      sp.addEventListener('transitionend', done);
-      setTimeout(done, 600);
-    };
-
-    // 미러볼을 180° 뒤집는 모션 (회전목마처럼 Y축으로)
+    // 미러볼을 180° 뒤집는 모션 (회전목마처럼 Y축으로) — 시각 효과 전용
     const flipBall = () => {
       dragging = true;                  // 그동안 idle 회전 멈춤
-      const from = rot, to = rot + 180, dur = 520; let st = null;
+      const from = rot, to = rot + 180, dur = 460; let st = null;
       const step = (ts) => {
         if (st === null) st = ts;
         const k = Math.min(1, (ts - st) / dur);
@@ -328,23 +319,12 @@
       requestAnimationFrame(step);
     };
 
-    // 한 번 클릭 = 뒤집기 → 현재의 반대 화면으로 토글 (힘 안 들이고 즉시)
-    let busy = false;
+    // 그냥 버튼 — 누르면 즉시 현재의 반대 화면으로 전환
     const toggle = () => {
-      if (busy) return; busy = true;
       flipBall();
-      if (!start.hidden) {                              // 서재 → 기존 YouTube 화면
-        if (yt) yt.hidden = false;
-        sp.classList.remove('is-anim'); sp.style.setProperty('--p', '0'); void sp.offsetWidth;
-        settle(1, () => { showPage('yt'); sp.style.removeProperty('--p'); busy = false; });
-      } else {                                          // 브라우저 → 서재
-        start.hidden = false;
-        sp.classList.remove('is-anim'); sp.style.setProperty('--p', '1'); void sp.offsetWidth;
-        settle(0, () => { showPage('start'); sp.style.removeProperty('--p'); busy = false; });
-      }
+      showPage(start.hidden ? 'start' : 'yt');   // 브라우저면 서재로, 서재면 YouTube로
     };
 
-    // stage 제스처(가든 등)로 새지 않도록 막고, 클릭으로만 전환
     ball.addEventListener('mousedown', (e) => { e.stopPropagation(); });
     ball.addEventListener('click', (e) => { e.preventDefault(); e.stopPropagation(); toggle(); });
   }
@@ -391,6 +371,54 @@
     const close = () => { ov.classList.remove('is-on'); setTimeout(() => ov.remove(), 280); };
     ov.addEventListener('mousedown', (e) => { e.stopPropagation(); if (e.target === ov) close(); });
     ov.querySelector('.sp-zoom__x').addEventListener('click', close);
+    const esc = (e) => { if (e.key === 'Escape') { close(); document.removeEventListener('keydown', esc); } };
+    document.addEventListener('keydown', esc);
+
+    // 요소(타일) 우클릭 → Stripe Press 식 상세 (관련 정보가 위·아래로 펼쳐짐)
+    ov.querySelectorAll('.sp-tile').forEach((tl, i) => {
+      tl.addEventListener('contextmenu', (e) => {
+        e.preventDefault(); e.stopPropagation();
+        openElementDetail(b, tiles[i], i, tiles);
+      });
+    });
+  }
+
+  // press.stripe.com 처럼: 요소를 가운데 두고 관련 정보를 위(맥락)·아래(상세)로 쌓아 보여줌
+  function openElementDetail(b, tile, idx, siblings) {
+    const meta = P[b.p] || P.x;
+    const title = tile.t || '수집 요소';
+    const ov = document.createElement('div');
+    ov.className = 'sp-detail';
+    ov.innerHTML = `
+      <button class="sp-detail__x" title="닫기">×</button>
+      <div class="sp-detail__col">
+        <div class="sp-detail__above">
+          <span class="sp-detail__crumb">${b.name} · 캡처된 가든</span>
+          <span class="sp-detail__idx">element ${idx + 1} / ${siblings.length}</span>
+        </div>
+        <div class="sp-detail__hero" style="background-image:${tile.c}"></div>
+        <div class="sp-detail__below">
+          <h2 class="sp-detail__title">${title}</h2>
+          <div class="sp-detail__sub">${meta.label} · 캡처 · 2026.06.16</div>
+          <p class="sp-detail__desc">${b.name}의 가든에서 수집한 요소입니다. 우클릭으로 펼친 상세 — 관련 정보가 위·아래로 이어집니다.</p>
+          <div class="sp-detail__rows">
+            <div class="sp-detail__row"><span>유형</span><b>이미지 · 캡처</b></div>
+            <div class="sp-detail__row"><span>출처</span><b>${b.handle}</b></div>
+            <div class="sp-detail__row"><span>플랫폼</span><b>${meta.label}</b></div>
+            <div class="sp-detail__row"><span>수집일</span><b>2026.06.16</b></div>
+          </div>
+          <div class="sp-detail__relhead">같은 가든의 다른 요소</div>
+          <div class="sp-detail__rel">
+            ${siblings.filter((_, i) => i !== idx).slice(0, 4)
+              .map((s) => `<span class="sp-detail__relx" style="background-image:${s.c}" title="${s.t || ''}"></span>`).join('')}
+          </div>
+        </div>
+      </div>`;
+    document.body.appendChild(ov);
+    requestAnimationFrame(() => ov.classList.add('is-on'));
+    const close = () => { ov.classList.remove('is-on'); setTimeout(() => ov.remove(), 280); };
+    ov.addEventListener('mousedown', (e) => { e.stopPropagation(); if (e.target === ov) close(); });
+    ov.querySelector('.sp-detail__x').addEventListener('click', close);
     const esc = (e) => { if (e.key === 'Escape') { close(); document.removeEventListener('keydown', esc); } };
     document.addEventListener('keydown', esc);
   }

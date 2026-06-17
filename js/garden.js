@@ -147,7 +147,9 @@ window.Blip = window.Blip || {};
       this.edge    = this.root.querySelector('.gd-edge');
       this.flash   = this.root.querySelector('.gd-flash');
       this.mapCanvas = this.root.querySelector('#gdMapCanvas');
-      this.frames = [];               // 퍼블리시(=frame)한 영역들
+      this.frames = [];               // 퍼블리시(=frame)한 영역들 (미니맵용)
+      this.frameRects = {};           // 캔버스 위 dotted 표시 (device별)
+      this.zoom = 1;                  // 화이트보드 줌 (Cmd+드래그)
     }
 
     // ---------------- 이벤트 ----------------
@@ -251,11 +253,13 @@ window.Blip = window.Blip || {};
       m.querySelector('.gd-modal__publish').addEventListener('click', () => {
         this.published[device] = true;
         this.snapshots[device] = this._snapshot();    // 현재 좌표를 default 로 고정
-        // 퍼블리시한 영역을 Frame 으로 기록 → 미니맵에 검정 점선으로 표시
+        // 퍼블리시한 영역을 Frame 으로 기록 → 미니맵 + 캔버스에 dotted 표시
         const bbox = this._itemsBBox();
         if (bbox) {
+          const label = device === 'phone' ? '모바일' : '데스크탑';
           this.frames = this.frames.filter((f) => f.device !== device);
-          this.frames.push({ device, label: device === 'phone' ? '모바일' : '데스크탑', ...bbox });
+          this.frames.push({ device, label, ...bbox });
+          this._drawFrameRect(device, label, bbox);
           this._scheduleMap();
         }
         const dev = this.root.querySelector(`.gd-dev[data-device="${device}"]`);
@@ -780,7 +784,34 @@ window.Blip = window.Blip || {};
       this.resize = { item, w: r.width, h: r.height, x: e.clientX, y: e.clientY };
     }
 
+    // ---------------- 화이트보드 줌 (Cmd+드래그) ----------------
+    _zoomStart(e) {
+      e.preventDefault();
+      this.zoomDrag = { y0: e.clientY, z0: this.zoom };
+      this.surface.style.transformOrigin = '0 0';
+    }
+    _applyZoom() {
+      this.surface.style.zoom = this.zoom;             // 레이아웃/스크롤까지 반영 (webkit)
+      let badge = this.root.querySelector('.gd-zoom');
+      if (!badge) {
+        badge = document.createElement('div');
+        badge.className = 'gd-zoom';
+        this.root.appendChild(badge);
+      }
+      badge.textContent = Math.round(this.zoom * 100) + '%';
+      badge.classList.add('is-on');
+      clearTimeout(this._zoomHide);
+      this._zoomHide = setTimeout(() => badge.classList.remove('is-on'), 900);
+      this._scheduleMap();
+    }
+
     _onMove(e) {
+      if (this.zoomDrag) {
+        const dz = (this.zoomDrag.y0 - e.clientY) / 220;   // 위로 끌면 확대, 아래로 축소
+        this.zoom = clamp(this.zoomDrag.z0 + dz, 0.35, 3);
+        this._applyZoom();
+        return;
+      }
       if (this.edgeDrag) {
         const dx = e.clientX - this.edgeDrag.x;
         if (Math.abs(dx) > 6) this.edgeDrag.moved = true;
@@ -820,6 +851,7 @@ window.Blip = window.Blip || {};
     }
 
     _onUp(e) {
+      if (this.zoomDrag) { this.zoomDrag = null; return; }
       if (this.edgeDrag) { this.edgeDrag = null; return; }
       if (this.draw) {
         const d = this.draw; this.draw = null;
@@ -858,6 +890,8 @@ window.Blip = window.Blip || {};
     // ---- 캔버스 위 영역 그리기 → <fill with> 선택 ----
     _drawStart(e) {
       if (e.button !== 0) return;
+      // Cmd(또는 Ctrl) + 드래그 → 화이트보드 줌 인/아웃
+      if (e.metaKey || e.ctrlKey) { this._zoomStart(e); return; }
       if (e.target.closest('.g-item') || e.target.closest('.gd-marquee')) return;
       this._clearChooser();
       e.preventDefault();
@@ -926,8 +960,9 @@ window.Blip = window.Blip || {};
       const worldH = Math.max(this.surface.scrollHeight, scroller.clientHeight, 900);
       const mw = this.mapCanvas.clientWidth || 168;
       const mh = this.mapCanvas.clientHeight || 120;
+      const z = this.zoom || 1;
       const sx = mw / worldW, sy = mh / worldH;
-      const px = (v) => Math.round(v * sx), py = (v) => Math.round(v * sy);
+      const px = (v) => Math.round(v * z * sx), py = (v) => Math.round(v * z * sy);
 
       let html = '';
       // 아이템들
@@ -956,6 +991,23 @@ window.Blip = window.Blip || {};
       scroller.scrollTop  = fy * worldH - scroller.clientHeight / 2;
       this._scheduleMap();
     }
+    // 퍼블리시한 영역을 캔버스 위에 dotted 테두리로 표시 (device별 1개)
+    _drawFrameRect(device, label, b) {
+      let rect = this.frameRects[device];
+      if (!rect) {
+        rect = document.createElement('div');
+        rect.className = 'gd-framerect';
+        rect.innerHTML = `<span class="gd-framerect__tag"></span>`;
+        this.surface.appendChild(rect);
+        this.frameRects[device] = rect;
+      }
+      rect.querySelector('.gd-framerect__tag').textContent = `${label} · published`;
+      rect.style.left = b.x + 'px';
+      rect.style.top = b.y + 'px';
+      rect.style.width = b.w + 'px';
+      rect.style.height = b.h + 'px';
+    }
+
     _itemsBBox() {
       const items = [...this.surface.querySelectorAll('.g-item')];
       if (!items.length) return null;
