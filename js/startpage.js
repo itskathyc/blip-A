@@ -196,18 +196,6 @@
         </aside>
 
         <main class="sp-main">
-          <header class="sp-top">
-            <div class="sp-tabs">
-              <button class="sp-tab is-on">책장</button>
-              <button class="sp-tab">전체</button>
-            </div>
-            <label class="sp-search">
-              <span>🔍</span>
-              <input type="text" placeholder="내 팔로잉 검색" />
-            </label>
-            <div class="sp-flip-hint">미러볼을 좌→우로 돌리면 브라우저 ⇢</div>
-          </header>
-
           <div class="sp-shelves"></div>
         </main>
       </div>`;
@@ -239,20 +227,8 @@
   function wire(root) {
     const sp = root.querySelector('.sp');
 
-    // 검색 필터
-    const input = root.querySelector('.sp-search input');
-    input.addEventListener('input', () => {
-      const q = input.value.trim().toLowerCase();
-      root.querySelectorAll('.sp-shelf').forEach((shelf) => {
-        let any = false;
-        shelf.querySelectorAll('.sp-book').forEach((bk) => {
-          const hit = !q || bk.dataset.search.includes(q);
-          bk.style.display = hit ? '' : 'none';
-          if (hit) any = true;
-        });
-        shelf.style.display = any ? '' : 'none';
-      });
-    });
+    // 스페이스바 + B → 화면 중앙 검색바 (Spotlight 식)
+    commandBar();
 
     // 좌측 하단 Frame(체다의 카메라설정 / Blip 구상) 클릭 → 내 blip 가든 등장
     root.querySelectorAll('.sp-frame').forEach((b) => {
@@ -266,7 +242,7 @@
     root.querySelectorAll('.sp-book').forEach((bk) => {
       bk.addEventListener('click', () => {
         if (sp.dataset.dragged === '1') return;       // 드래그였으면 클릭 무시
-        openBookGarden(bk, bk._data);
+        openBookGarden(bk._data);
       });
     });
 
@@ -278,35 +254,31 @@
     });
     window.addEventListener('mouseup', () => { down = null; });
 
-    // ── 미러볼: 모든 화면 공통 전환 컨트롤 (좌→우 브라우저 / 우→좌 서재) ──
-    mirrorball(root, sp);
+    // ── 미러볼: 모든 화면 공통 전환 버튼 (누르면 서재 ⟷ 브라우저) ──
+    mirrorball(root);
   }
 
-  // 미러볼 — 좌측 Nav 최상단(그리고 모든 화면)에 떠 있는 회전 컨트롤.
-  //  좌→우로 돌리면 화면 전체가 zoom-out 되며 뒤의 일반 브라우저가 등장,
-  //  우→좌로 돌리면 서재(책장)가 다시 자라난다. 회전량이 전환 진행도(--p)를 구동.
-  function mirrorball(root, sp) {
-    const W = () => root.clientWidth || window.innerWidth;
-    const yt = document.getElementById('yt');
+  // 미러볼 — 좌측 Nav 최상단(그리고 모든 화면)에 떠 있는 전환 버튼.
+  //  평소엔 가만히 고정. 누르면 180° 뒤집히며 서재 ⟷ 일반 브라우저 전환.
+  function mirrorball(root) {
     const start = root;
 
     const ball = document.createElement('button');
     ball.id = 'blipBall';
-    ball.title = '미러볼 — 좌→우로 돌리면 브라우저, 우→좌로 돌리면 서재';
+    ball.title = '미러볼 — 누르면 서재 ⟷ 브라우저 전환';
     ball.innerHTML = `<span class="ball__sphere"><span class="ball__shine"></span></span>`;
-    document.body.appendChild(ball);
+    (document.getElementById("osWinBody")||document.body).appendChild(ball);
 
     let rot = 0;            // 누적 회전각 (Y축 — 회전목마처럼 앞→뒷면으로)
-    let dragging = false;
+    let flipping = false;
     const sphere = ball.querySelector('.ball__sphere');
     const setRot = (deg) => { sphere.style.transform = `rotateY(${deg}deg)`; };
-    // 평소엔 천천히 회전목마처럼 돌고, 드래그 중엔 손가락을 따라감
-    const spin = () => { if (!dragging) { rot = (rot + 0.35) % 360; setRot(rot); } requestAnimationFrame(spin); };
-    requestAnimationFrame(spin);
+    setRot(0);             // 입력이 없을 땐 가만히 고정 (idle 회전 없음)
 
-    // 미러볼을 180° 뒤집는 모션 (회전목마처럼 Y축으로) — 시각 효과 전용
+    // 미러볼을 180° 뒤집는 모션 (클릭 시에만 회전목마처럼 Y축으로)
     const flipBall = () => {
-      dragging = true;                  // 그동안 idle 회전 멈춤
+      if (flipping) return;
+      flipping = true;
       const from = rot, to = rot + 180, dur = 460; let st = null;
       const step = (ts) => {
         if (st === null) st = ts;
@@ -314,7 +286,7 @@
         const e = 1 - Math.pow(1 - k, 3);
         rot = from + (to - from) * e; setRot(rot);
         if (k < 1) requestAnimationFrame(step);
-        else dragging = false;
+        else { rot = to % 360; setRot(rot); flipping = false; }
       };
       requestAnimationFrame(step);
     };
@@ -346,81 +318,261 @@
     ];
   }
 
-  function openBookGarden(bk, b) {
+  // 스페이스바 + B → 화면 중앙 검색바 (Spotlight 식). 어떤 책이든 검색해 바로 연다.
+  function commandBar() {
+    const mount = () => document.getElementById('osWinBody') || document.body;
+    const allBooks = SHELVES.flatMap((s) => s.books);
+    let spaceDown = false, open = null;
+
+    const typing = () => {
+      const t = document.activeElement;
+      return t && (t.tagName === 'INPUT' || t.tagName === 'TEXTAREA' || t.isContentEditable);
+    };
+
+    const close = () => {
+      if (!open) return;
+      open.classList.remove('is-on');
+      const el = open; open = null;
+      setTimeout(() => el.remove(), 180);
+    };
+    const openCmd = () => {
+      if (open) return;
+      const ov = document.createElement('div');
+      ov.className = 'sp-cmd';
+      ov.innerHTML = `
+        <div class="sp-cmd__panel">
+          <div class="sp-cmd__bar">
+            <span class="sp-cmd__ic">🔍</span>
+            <input class="sp-cmd__in" type="text" placeholder="블립 검색 — 팔로잉, 플랫폼…" spellcheck="false" />
+            <span class="sp-cmd__kbd">space + B</span>
+          </div>
+          <div class="sp-cmd__results"></div>
+        </div>`;
+      mount().appendChild(ov);
+      open = ov;
+      requestAnimationFrame(() => ov.classList.add('is-on'));
+      const input = ov.querySelector('.sp-cmd__in');
+      const results = ov.querySelector('.sp-cmd__results');
+      const render = () => {
+        const q = input.value.trim().toLowerCase();
+        const hits = allBooks.filter((b) => {
+          const meta = P[b.p] || P.x;
+          return !q || (b.name + ' ' + b.handle + ' ' + meta.label).toLowerCase().includes(q);
+        });
+        results.innerHTML = hits.map((b) => {
+          const meta = P[b.p] || P.x;
+          return `<button class="sp-cmd__row" data-name="${b.name}">
+            <span class="sp-cmd__badge" style="background:linear-gradient(135deg,${b.c1 || meta.c1},${b.c2 || meta.c2})">${meta.icon}</span>
+            <span class="sp-cmd__meta"><b>${b.name}</b><small>${b.handle} · ${meta.label}</small></span>
+          </button>`;
+        }).join('') || `<div class="sp-cmd__empty">결과 없음</div>`;
+        results.querySelectorAll('.sp-cmd__row').forEach((row) => {
+          row.addEventListener('click', () => {
+            const b = allBooks.find((x) => x.name === row.dataset.name);
+            if (b) openBookGarden(b);
+            close();
+          });
+        });
+      };
+      input.addEventListener('input', render);
+      input.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape') { e.preventDefault(); close(); }
+        else if (e.key === 'Enter') {
+          const first = results.querySelector('.sp-cmd__row');
+          if (first) first.click();
+        }
+      });
+      ov.addEventListener('mousedown', (e) => { e.stopPropagation(); if (e.target === ov) close(); });
+      render();
+      requestAnimationFrame(() => input.focus());
+    };
+
+    window.addEventListener('keydown', (e) => {
+      if (e.code === 'Space' && !typing()) spaceDown = true;
+      if (e.code === 'KeyB' && spaceDown && !typing()) { e.preventDefault(); openCmd(); }
+    });
+    window.addEventListener('keyup', (e) => { if (e.code === 'Space') spaceDown = false; });
+    window.addEventListener('blur', () => { spaceDown = false; });
+  }
+
+  // 책을 고르면 그 사람의 "캡처된 가든"이 떠다니는 창으로 열린다.
+  //  - 헤더를 잡고 화면 위에서 자유롭게 이동
+  //  - 여러 개를 동시에 띄울 수 있음 (모달 아님)
+  let _winN = 0, _winZ = 60;
+  function openBookGarden(b) {
     if (!b) return;
     const meta = P[b.p] || P.x;
     const tiles = b.garden || defaultGarden(b);
-    const ov = document.createElement('div');
-    ov.className = 'sp-zoom';
-    const r = bk.getBoundingClientRect();
-    ov.style.setProperty('--ox', (r.left + r.width / 2) + 'px');
-    ov.style.setProperty('--oy', (r.top + r.height / 2) + 'px');
-    ov.innerHTML = `
-      <div class="sp-zoom__sheet" style="--c1:${b.c1 || meta.c1};--c2:${b.c2 || meta.c2};--ink:${meta.ink}">
-        <header class="sp-zoom__bar">
-          <span class="sp-zoom__badge">${meta.icon}</span>
-          <span class="sp-zoom__id"><b>${b.name}</b><small>${b.handle} · ${meta.label} · 캡처된 가든</small></span>
-          <button class="sp-zoom__x" title="닫기">×</button>
-        </header>
-        <div class="sp-zoom__board">
-          ${tiles.map((t) => `<div class="sp-tile${t.big ? ' is-big' : ''}" style="background-image:${t.c}"><span>${t.t || ''}</span></div>`).join('')}
-        </div>
-      </div>`;
-    document.body.appendChild(ov);
-    requestAnimationFrame(() => ov.classList.add('is-on'));
-    const close = () => { ov.classList.remove('is-on'); setTimeout(() => ov.remove(), 280); };
-    ov.addEventListener('mousedown', (e) => { e.stopPropagation(); if (e.target === ov) close(); });
-    ov.querySelector('.sp-zoom__x').addEventListener('click', close);
-    const esc = (e) => { if (e.key === 'Escape') { close(); document.removeEventListener('keydown', esc); } };
-    document.addEventListener('keydown', esc);
+    const mount = document.getElementById('osWinBody') || document.body;
+    const win = document.createElement('div');
+    win.className = 'sp-win';
+    const n = _winN++;
+    win.style.left = (70 + (n % 6) * 34) + 'px';
+    win.style.top  = (60 + (n % 6) * 34) + 'px';
+    win.style.zIndex = String(++_winZ);
+    win.innerHTML = `
+      <header class="sp-win__bar" style="--c1:${b.c1 || meta.c1};--c2:${b.c2 || meta.c2};--ink:${meta.ink}">
+        <span class="sp-win__badge">${meta.icon}</span>
+        <span class="sp-win__id"><b>${b.name}</b><small>${b.handle} · ${meta.label} · 캡처된 가든</small></span>
+        <button class="sp-win__x" title="닫기">×</button>
+      </header>
+      <div class="sp-win__board">
+        ${tiles.map((t) => `<div class="sp-tile${t.big ? ' is-big' : ''}" style="background-image:${t.c}"><span>${t.t || ''}</span></div>`).join('')}
+      </div>
+      <span class="sp-win__resize" title="크기 조절"></span>`;
+    mount.appendChild(win);
+    requestAnimationFrame(() => win.classList.add('is-on'));
 
-    // 요소(타일) 우클릭 → Stripe Press 식 상세 (관련 정보가 위·아래로 펼쳐짐)
-    ov.querySelectorAll('.sp-tile').forEach((tl, i) => {
+    const close = () => { win.classList.remove('is-on'); setTimeout(() => win.remove(), 200); };
+    win.querySelector('.sp-win__x').addEventListener('click', (e) => { e.stopPropagation(); close(); });
+    // 클릭하면 맨 앞으로
+    win.addEventListener('mousedown', (e) => { e.stopPropagation(); win.style.zIndex = String(++_winZ); });
+
+    // 헤더 드래그 → 창 이동
+    const bar = win.querySelector('.sp-win__bar');
+    bar.addEventListener('mousedown', (e) => {
+      if (e.target.closest('.sp-win__x')) return;
+      e.preventDefault();
+      const r = win.getBoundingClientRect();
+      const m = mount.getBoundingClientRect();
+      const offX = e.clientX - r.left, offY = e.clientY - r.top;
+      const onMove = (ev) => {
+        const x = Math.max(0, Math.min(ev.clientX - m.left - offX, m.width - 80));
+        const y = Math.max(0, Math.min(ev.clientY - m.top - offY, m.height - 30));
+        win.style.left = x + 'px'; win.style.top = y + 'px';
+      };
+      const onUp = () => { window.removeEventListener('mousemove', onMove); window.removeEventListener('mouseup', onUp); };
+      window.addEventListener('mousemove', onMove); window.addEventListener('mouseup', onUp);
+    });
+
+    // 우측 하단 핸들 드래그 → 창 크기 조절
+    const grip = win.querySelector('.sp-win__resize');
+    grip.addEventListener('mousedown', (e) => {
+      e.preventDefault(); e.stopPropagation();
+      const r = win.getBoundingClientRect();
+      const sw = r.width, sh = r.height, sx = e.clientX, sy = e.clientY;
+      win.style.maxHeight = 'none';                 // 리사이즈하면 자유 높이
+      const onMove = (ev) => {
+        win.style.width  = Math.max(280, Math.min(sw + (ev.clientX - sx), 900)) + 'px';
+        win.style.height = Math.max(220, Math.min(sh + (ev.clientY - sy), 760)) + 'px';
+      };
+      const onUp = () => { window.removeEventListener('mousemove', onMove); window.removeEventListener('mouseup', onUp); };
+      window.addEventListener('mousemove', onMove); window.addEventListener('mouseup', onUp);
+    });
+
+    // 요소(타일) 우클릭 → 히스토리(맥락) 스택
+    win.querySelectorAll('.sp-tile').forEach((tl, i) => {
       tl.addEventListener('contextmenu', (e) => {
         e.preventDefault(); e.stopPropagation();
-        openElementDetail(b, tiles[i], i, tiles);
+        openHistory(b, tiles[i], e.clientX, e.clientY);
       });
     });
   }
 
-  // press.stripe.com 처럼: 요소를 가운데 두고 관련 정보를 위(맥락)·아래(상세)로 쌓아 보여줌
-  function openElementDetail(b, tile, idx, siblings) {
+  // 작은 토스트
+  function spToast(msg) {
+    const mount = document.getElementById('osWinBody') || document.body;
+    const t = document.createElement('div');
+    t.className = 'sp-toast'; t.textContent = msg;
+    mount.appendChild(t);
+    requestAnimationFrame(() => t.classList.add('is-on'));
+    setTimeout(() => { t.classList.remove('is-on'); setTimeout(() => t.remove(), 250); }, 1600);
+  }
+
+  // 콘텐츠 1개의 "히스토리" 맥락 카드들 (위=최근, 아래=과거)
+  function historyOf(b, tile) {
     const meta = P[b.p] || P.x;
-    const title = tile.t || '수집 요소';
-    const ov = document.createElement('div');
-    ov.className = 'sp-detail';
-    ov.innerHTML = `
-      <button class="sp-detail__x" title="닫기">×</button>
-      <div class="sp-detail__col">
-        <div class="sp-detail__above">
-          <span class="sp-detail__crumb">${b.name} · 캡처된 가든</span>
-          <span class="sp-detail__idx">element ${idx + 1} / ${siblings.length}</span>
-        </div>
-        <div class="sp-detail__hero" style="background-image:${tile.c}"></div>
-        <div class="sp-detail__below">
-          <h2 class="sp-detail__title">${title}</h2>
-          <div class="sp-detail__sub">${meta.label} · 캡처 · 2026.06.16</div>
-          <p class="sp-detail__desc">${b.name}의 가든에서 수집한 요소입니다. 우클릭으로 펼친 상세 — 관련 정보가 위·아래로 이어집니다.</p>
-          <div class="sp-detail__rows">
-            <div class="sp-detail__row"><span>유형</span><b>이미지 · 캡처</b></div>
-            <div class="sp-detail__row"><span>출처</span><b>${b.handle}</b></div>
-            <div class="sp-detail__row"><span>플랫폼</span><b>${meta.label}</b></div>
-            <div class="sp-detail__row"><span>수집일</span><b>2026.06.16</b></div>
-          </div>
-          <div class="sp-detail__relhead">같은 가든의 다른 요소</div>
-          <div class="sp-detail__rel">
-            ${siblings.filter((_, i) => i !== idx).slice(0, 4)
-              .map((s) => `<span class="sp-detail__relx" style="background-image:${s.c}" title="${s.t || ''}"></span>`).join('')}
-          </div>
-        </div>
-      </div>`;
-    document.body.appendChild(ov);
-    requestAnimationFrame(() => ov.classList.add('is-on'));
-    const close = () => { ov.classList.remove('is-on'); setTimeout(() => ov.remove(), 280); };
-    ov.addEventListener('mousedown', (e) => { e.stopPropagation(); if (e.target === ov) close(); });
-    ov.querySelector('.sp-detail__x').addEventListener('click', close);
-    const esc = (e) => { if (e.key === 'Escape') { close(); document.removeEventListener('keydown', esc); } };
-    document.addEventListener('keydown', esc);
+    const base = tile.c || `linear-gradient(150deg, ${(b.c1 || meta.c1)}, ${(b.c2 || meta.c2)})`;
+    return [
+      { t: '지금 이 화면에서 봄',   time: '지금',     c: base, kind: '비의도적' },
+      { t: `${b.name} 피드에서 발견`, time: '어제',    c: 'linear-gradient(150deg,#cfe0ff,#9db4ff)', kind: '비의도적' },
+      { t: '친구가 공유함',          time: '지난주',   c: 'linear-gradient(150deg,#ffd6a8,#e89a52)', kind: '비의도적' },
+      { t: '검색하다 저장',          time: '3주 전',   c: 'linear-gradient(150deg,#bdeccd,#7bd17a)', kind: '의도적' },
+      { t: '처음 캡처',              time: '2개월 전', c: 'linear-gradient(150deg,#e7a6c4,#d62976)', kind: '의도적' },
+    ];
+  }
+
+  // 콘텐츠 우클릭 → 히스토리 스택 (네모 카드 5개 · 휠로 위아래 · 아래=과거)
+  function openHistory(b, tile, x, y) {
+    document.querySelectorAll('.sp-hist, .sp-actmenu').forEach((m) => m.remove());
+    const mount = document.getElementById('osWinBody') || document.body;
+    const items = historyOf(b, tile);
+    const hist = document.createElement('div');
+    hist.className = 'sp-hist';
+    hist.innerHTML = `
+      <div class="sp-hist__head">히스토리<small>${tile.t || '콘텐츠'}</small></div>
+      <div class="sp-hist__scroll">
+        ${items.map((h) => `
+          <div class="sp-hist__card">
+            <span class="sp-hist__thumb" style="background-image:${h.c}"></span>
+            <span class="sp-hist__meta">
+              <b>${h.t}</b>
+              <small>${h.time} · ${h.kind} 수집</small>
+            </span>
+          </div>`).join('')}
+      </div>
+      <div class="sp-hist__axis"><span>↑ 최근</span><span>과거 ↓</span></div>`;
+    mount.appendChild(hist);
+
+    const r = mount.getBoundingClientRect();
+    const w = 264, h = hist.offsetHeight || 320;
+    let left = Math.max(8, Math.min(x - r.left, r.width - w - 8));
+    let top = Math.max(8, Math.min(y - r.top, r.height - h - 8));
+    hist.style.left = left + 'px'; hist.style.top = top + 'px';
+    requestAnimationFrame(() => hist.classList.add('is-on'));
+
+    const close = () => { hist.remove(); document.removeEventListener('mousedown', away); document.removeEventListener('keydown', esc); };
+    const away = (ev) => { if (!hist.contains(ev.target) && !ev.target.closest('.sp-actmenu')) close(); };
+    const esc = (ev) => { if (ev.key === 'Escape') close(); };
+    setTimeout(() => { document.addEventListener('mousedown', away); document.addEventListener('keydown', esc); }, 0);
+
+    // 히스토리 카드 우클릭 → 수집 / 댓글
+    hist.querySelectorAll('.sp-hist__card').forEach((card, i) => {
+      card.addEventListener('contextmenu', (e) => {
+        e.preventDefault(); e.stopPropagation();
+        openHistActions(b, tile, items[i], e.clientX, e.clientY);
+      });
+    });
+  }
+
+  // 히스토리 카드 우클릭 → 내 Blip으로 수집 / 댓글
+  function openHistActions(b, tile, h, x, y) {
+    document.querySelectorAll('.sp-actmenu').forEach((m) => m.remove());
+    const mount = document.getElementById('osWinBody') || document.body;
+    const m = document.createElement('div');
+    m.className = 'sp-actmenu';
+    m.innerHTML = `
+      <button class="sp-actmenu__act" data-act="collect"><span>📥</span> 내 Blip으로 수집</button>
+      <button class="sp-actmenu__act" data-act="comment"><span>💬</span> 댓글</button>`;
+    mount.appendChild(m);
+    const r = mount.getBoundingClientRect();
+    let left = Math.max(8, Math.min(x - r.left, r.width - 200));
+    let top = Math.max(8, Math.min(y - r.top, r.height - 110));
+    m.style.left = left + 'px'; m.style.top = top + 'px';
+    requestAnimationFrame(() => m.classList.add('is-on'));
+
+    const close = () => { m.remove(); document.removeEventListener('mousedown', away); document.removeEventListener('keydown', esc); };
+    const away = (ev) => { if (!m.contains(ev.target)) close(); };
+    const esc = (ev) => { if (ev.key === 'Escape') close(); };
+    setTimeout(() => { document.addEventListener('mousedown', away); document.addEventListener('keydown', esc); }, 0);
+
+    m.querySelector('[data-act="collect"]').addEventListener('click', () => {
+      close();
+      // 내 Garden(blip)에 수집 → 저장내역으로 등장
+      document.dispatchEvent(new CustomEvent('blip:collect', {
+        detail: { thumb: h.c || tile.c, time: h.time, title: tile.t || '수집 요소', kind: h.kind, from: b.name },
+      }));
+      spToast(`내 Blip(가든)에 수집됨 · ${h.kind} ✓`);
+    });
+    m.querySelector('[data-act="comment"]').addEventListener('click', () => {
+      m.innerHTML = `
+        <textarea class="sp-actmenu__cmt" placeholder="이 콘텐츠에 댓글…"></textarea>
+        <button class="sp-actmenu__save">저장</button>`;
+      const ta = m.querySelector('.sp-actmenu__cmt'); ta.focus();
+      m.querySelector('.sp-actmenu__save').addEventListener('click', () => {
+        const v = ta.value.trim(); close(); spToast(v ? '댓글 저장됨 ✓' : '댓글 없이 닫힘');
+      });
+    });
   }
 
   // ─────────────────────────────────────────────────────────

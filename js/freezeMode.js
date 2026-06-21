@@ -70,7 +70,7 @@ window.Blip = window.Blip || {};
           <b>FREEZE</b>
           <span>1클릭 메모 · 좌+우 캡처 · Esc 종료</span>
         </div>`;
-      document.body.appendChild(layer);
+      (document.getElementById("osWinBody")||document.body).appendChild(layer);
       this.layer = layer;
       this.overlay = layer.querySelector('.freeze__overlay');
       this.box = layer.querySelector('.freeze__box');
@@ -79,7 +79,7 @@ window.Blip = window.Blip || {};
       this.menu = document.createElement('div');
       this.menu.className = 'freeze-menu';
       this.menu.style.display = 'none';
-      document.body.appendChild(this.menu);
+      (document.getElementById("osWinBody")||document.body).appendChild(this.menu);
     }
 
     // ---------------- enter / exit ----------------

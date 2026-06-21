@@ -213,7 +213,7 @@ window.Blip = window.Blip || {};
           d.ghost = document.createElement('div');
           d.ghost.className = 'atom-ghost';
           d.ghost.style.backgroundImage = d.atom.thumbCss;
-          document.body.appendChild(d.ghost);
+          (document.getElementById("osWinBody")||document.body).appendChild(d.ghost);
         }
         d.ghost.style.left = e.clientX + 'px';
         d.ghost.style.top = e.clientY + 'px';

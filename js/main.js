@@ -77,6 +77,18 @@ window.addEventListener('DOMContentLoaded', () => {
   // 스타트페이지(좌측 하단 My/Cheddar) → blip 가든 등장
   document.addEventListener('blip:openGarden', () => garden.open());
 
+  // 히스토리 카드 → "내 Blip으로 수집" → 내 Garden에 저장내역으로 등장
+  let _collectN = 0;
+  document.addEventListener('blip:collect', (e) => {
+    const d = e.detail || {};
+    garden.addCapture({
+      id: ++_collectN,
+      thumbCss: d.thumb || 'linear-gradient(135deg,#2a3550,#11151d)',
+      time: `${d.time || '방금'} · ${d.kind || ''} · ${d.from || ''}`.trim(),
+      note: '',
+    });
+  });
+
   // 배경 YouTube 추천 영상 채우기 (장식)
   buildRecos();
   // 배경 Instagram 프로필(합정다락) 채우기
@@ -89,9 +101,47 @@ window.addEventListener('DOMContentLoaded', () => {
     ig: document.getElementById('ig'),
   };
   window.Blip = window.Blip || {};
+  const urlEl = document.getElementById('osUrl');
+  const PAGE_URL = {
+    start: 'blip://cheddar/서재',
+    yt: 'https://www.youtube.com/watch?v=pDzT63SCIHY',
+    ig: 'https://www.instagram.com/hapjeong_darak',
+  };
   window.Blip.showPage = (which) => {
     for (const k in pages) { if (pages[k]) pages[k].hidden = (k !== which); }
+    if (urlEl && PAGE_URL[which]) urlEl.value = PAGE_URL[which];   // 주소창 갱신
   };
+
+  // ── blip 브라우저 창 컨트롤 (신호등 · 독 · 새로고침 · 뒤/앞) ──
+  (function osWindow() {
+    const desktop = document.getElementById('desktop');
+    const win = document.getElementById('osWin');
+    const dock = document.getElementById('osDock');
+    const app  = document.getElementById('osApp');
+    if (!desktop || !win) return;
+
+    const launch = () => {                 // 블립 앱(창) 실행/복귀
+      win.classList.remove('is-min', 'is-closed');
+      if (dock) dock.hidden = true;
+      if (app) app.hidden = true;
+    };
+    document.querySelectorAll('.oswin__light').forEach((b) => {
+      b.addEventListener('click', () => {
+        const a = b.dataset.win;
+        if (a === 'max') desktop.classList.toggle('is-max');
+        else if (a === 'min') { win.classList.add('is-min'); if (dock) dock.hidden = false; }
+        else if (a === 'close') { win.classList.add('is-closed'); if (app) app.hidden = false; }  // 닫으면 데스크톱에 B 아이콘
+      });
+    });
+    if (dock) dock.addEventListener('click', launch);            // 독: 한 번 클릭 복귀
+    if (app)  app.addEventListener('dblclick', launch);          // 앱 아이콘: 더블클릭 실행
+    const reload = document.querySelector('.oswin__reload');
+    if (reload) reload.addEventListener('click', () => location.reload());
+    const back = document.querySelector('.oswin__navbtn[data-nav="back"]');
+    const fwd  = document.querySelector('.oswin__navbtn[data-nav="fwd"]');
+    if (back) back.addEventListener('click', () => window.Blip.showPage('start'));
+    if (fwd)  fwd.addEventListener('click', () => window.Blip.showPage('yt'));
+  })();
 
   function buildRecos() {
     const box = document.getElementById('ytRecos');

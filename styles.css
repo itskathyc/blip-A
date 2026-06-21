@@ -3008,3 +3008,354 @@ body.frozen .garden { z-index: 80; }
   transition: transform .14s;
 }
 .sp-detail__relx:hover { transform: translateY(-3px); }
+
+/* =====================================================
+   blip OS — 데스크톱 + 브라우저 창 (macOS Safari 형식)
+   ===================================================== */
+html, body { height: 100%; }
+#desktop {
+  position: fixed; inset: 0; z-index: 0;
+  display: flex; flex-direction: column;
+  padding: 0 26px 26px;
+  /* OS 배경 (데스크톱 월페이퍼) */
+  background:
+    radial-gradient(70% 60% at 18% 12%, #6b86c4, transparent 60%),
+    radial-gradient(60% 60% at 86% 18%, #b07ab0, transparent 60%),
+    radial-gradient(80% 70% at 80% 96%, #4f6aa8, transparent 60%),
+    linear-gradient(160deg, #2b3358, #1a1f38);
+}
+/* 상단 메뉴바 */
+.os-menubar {
+  flex: none; height: 28px; display: flex; align-items: center; gap: 10px;
+  padding: 0 6px; color: rgba(255,255,255,.92); font-size: .74rem; font-weight: 600;
+}
+.os-menubar__logo { letter-spacing: .02em; }
+.os-menubar__sp { flex: 1; }
+.os-menubar__clock { opacity: .85; }
+
+/* 브라우저 창 */
+.oswin {
+  flex: 1; min-height: 0;
+  display: flex; flex-direction: column;
+  border-radius: 14px; overflow: hidden;
+  background: var(--bg);
+  box-shadow: 0 40px 90px -30px rgba(0,0,0,.7), 0 10px 30px rgba(0,0,0,.45);
+  border: 1px solid rgba(255,255,255,.1);
+  transition: transform .3s cubic-bezier(.3,.8,.2,1), opacity .3s ease;
+  transform-origin: bottom center;
+}
+/* Safari 툴바 (라이트) */
+.oswin__bar {
+  flex: none; height: 48px; display: flex; align-items: center; gap: 14px;
+  padding: 0 14px;
+  background: linear-gradient(#fbfbfd, #ececed);
+  border-bottom: 1px solid #d6d6da;
+}
+.oswin__lights { display: flex; gap: 8px; align-items: center; }
+.oswin__light {
+  width: 13px; height: 13px; border-radius: 50%; border: none; cursor: pointer;
+  position: relative; padding: 0;
+}
+.oswin__light--close { background: #ff5f57; box-shadow: inset 0 0 0 .5px rgba(0,0,0,.12); }
+.oswin__light--min   { background: #febc2e; box-shadow: inset 0 0 0 .5px rgba(0,0,0,.12); }
+.oswin__light--max   { background: #28c840; box-shadow: inset 0 0 0 .5px rgba(0,0,0,.12); }
+.oswin__lights:hover .oswin__light::before {
+  position: absolute; inset: 0; display: grid; place-items: center;
+  font-size: 9px; font-weight: 800; color: rgba(0,0,0,.55); line-height: 1;
+}
+.oswin__light--close:hover::before { content: "×"; }
+.oswin__light--min:hover::before   { content: "–"; }
+.oswin__light--max:hover::before   { content: "+"; }
+
+.oswin__nav { display: flex; gap: 2px; }
+.oswin__navbtn {
+  width: 28px; height: 28px; border-radius: 7px; border: none; background: transparent;
+  color: #6b6b70; font-size: 1.1rem; cursor: pointer;
+}
+.oswin__navbtn:hover { background: rgba(0,0,0,.06); color: #2a2a2e; }
+
+.oswin__addr {
+  flex: 1; max-width: 620px; margin: 0 auto;
+  display: flex; align-items: center; gap: 8px;
+  height: 30px; padding: 0 12px; border-radius: 9px;
+  background: #e3e3e6; color: #3a3a40;
+}
+.oswin__lock { width: 13px; height: 13px; color: #8a8a90; flex: none; }
+.oswin__url {
+  flex: 1; border: none; outline: none; background: transparent;
+  text-align: center; font-size: .82rem; color: #2a2a2e;
+}
+.oswin__reload { border: none; background: transparent; color: #8a8a90; cursor: pointer; font-size: .95rem; }
+.oswin__reload:hover { color: #2a2a2e; }
+.oswin__tools { display: flex; gap: 2px; }
+.oswin__toolbtn {
+  width: 28px; height: 28px; border-radius: 7px; border: none; background: transparent;
+  color: #6b6b70; font-size: .92rem; cursor: pointer;
+}
+.oswin__toolbtn:hover { background: rgba(0,0,0,.06); color: #2a2a2e; }
+
+/* 창 본문 — transform 으로 내부 position:fixed 요소들을 창 안에 가둔다 */
+.oswin__body {
+  flex: 1; min-height: 0; position: relative; overflow: hidden;
+  background: var(--bg);
+  transform: translateZ(0);
+}
+
+/* 창 상태: 최대화 / 최소화 / 닫힘 */
+#desktop.is-max { padding: 0; }
+#desktop.is-max .os-menubar { display: none; }
+#desktop.is-max .oswin { border-radius: 0; }
+.oswin.is-min { transform: translateY(60px) scale(.04); opacity: 0; pointer-events: none; }
+.oswin.is-closed { transform: scale(.97); opacity: 0; pointer-events: none; }
+
+/* 독 (닫힘/최소화 시 재실행) */
+.osdock {
+  position: fixed; left: 50%; bottom: 18px; transform: translateX(-50%); z-index: 5;
+  display: flex; align-items: center; gap: 8px;
+  padding: 10px 18px; border-radius: 16px;
+  background: rgba(255,255,255,.16); border: 1px solid rgba(255,255,255,.32);
+  backdrop-filter: blur(16px);
+  color: #fff; font-weight: 700; font-size: .9rem; cursor: pointer;
+  box-shadow: 0 16px 40px -12px rgba(0,0,0,.6);
+}
+.osdock[hidden] { display: none; }
+.osdock span { font-size: 1.1rem; }
+.osdock:hover { background: rgba(255,255,255,.26); }
+
+/* ---- 책 → 떠다니는 창 (여러 개 동시 · 드래그 이동) ---- */
+.sp-win {
+  position: absolute; width: min(440px, 86%); max-height: 80%;
+  display: flex; flex-direction: column;
+  border-radius: 22px; overflow: hidden;
+  background: rgba(255,255,255,.6);
+  backdrop-filter: blur(28px) saturate(1.5);
+  -webkit-backdrop-filter: blur(28px) saturate(1.5);
+  border: 1px solid rgba(255,255,255,.6);
+  box-shadow: 0 30px 70px -24px rgba(20,15,40,.6), inset 0 1px 0 rgba(255,255,255,.7);
+  opacity: 0; transform: scale(.96) translateY(8px);
+  transition: opacity .2s ease, transform .2s cubic-bezier(.2,.8,.2,1);
+}
+.sp-win.is-on { opacity: 1; transform: none; }
+.sp-win__bar {
+  display: flex; align-items: center; gap: 11px; padding: 13px 14px;
+  cursor: grab; color: var(--ink, #fff);
+  background: linear-gradient(120deg, var(--c1), var(--c2));
+}
+.sp-win__bar:active { cursor: grabbing; }
+.sp-win__badge {
+  width: 30px; height: 30px; border-radius: 10px; flex: none;
+  display: grid; place-items: center; font-weight: 800;
+  background: rgba(255,255,255,.28); border: 1px solid rgba(255,255,255,.45);
+}
+.sp-win__id { display: flex; flex-direction: column; line-height: 1.2; min-width: 0; }
+.sp-win__id b { font-size: .95rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.sp-win__id small { font-size: .7rem; opacity: .9; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.sp-win__x {
+  margin-left: auto; width: 28px; height: 28px; border-radius: 50%; flex: none;
+  border: 1px solid rgba(255,255,255,.4); background: rgba(255,255,255,.22);
+  color: var(--ink, #fff); font-size: 1.05rem; cursor: pointer;
+}
+.sp-win__x:hover { background: rgba(255,255,255,.4); }
+.sp-win__board {
+  flex: 1; min-height: 0; overflow-y: auto; padding: 16px;
+  display: grid; grid-template-columns: repeat(3, 1fr); gap: 11px;
+  align-content: start;
+}
+/* 우측 하단 리사이즈 핸들 */
+.sp-win__resize {
+  position: absolute; right: 0; bottom: 0; width: 18px; height: 18px;
+  cursor: nwse-resize; z-index: 2;
+  background:
+    linear-gradient(135deg, transparent 50%, rgba(120,110,150,.5) 50%, rgba(120,110,150,.5) 62%, transparent 62%, transparent 74%, rgba(120,110,150,.5) 74%, rgba(120,110,150,.5) 86%, transparent 86%);
+}
+
+/* ---- 데스크톱 앱 아이콘 (창을 닫으면 등장 · 더블클릭 실행) ---- */
+.osapp {
+  position: absolute; left: 48px; top: 64px; z-index: 2;
+  display: flex; flex-direction: column; align-items: center; gap: 8px;
+  padding: 10px; border: none; background: transparent; cursor: pointer;
+  border-radius: 16px; transition: background .15s;
+}
+.osapp[hidden] { display: none; }
+.osapp:hover { background: rgba(255,255,255,.12); }
+.osapp__tile {
+  width: 76px; height: 76px; border-radius: 20px;
+  display: grid; place-items: center;
+  font-size: 2.4rem; font-weight: 800; color: #fff; font-family: Georgia, serif;
+  background: linear-gradient(150deg, #7b8cff, #b07ab0 55%, #ff9e6b);
+  box-shadow: 0 14px 30px -10px rgba(0,0,0,.6), inset 0 1px 0 rgba(255,255,255,.5);
+}
+.osapp__label {
+  font-size: .82rem; font-weight: 600; color: #fff;
+  text-shadow: 0 1px 4px rgba(0,0,0,.5);
+}
+
+/* ---- Space + B : 화면 중앙 검색바 (Spotlight) ---- */
+.sp-cmd {
+  position: absolute; inset: 0; z-index: 45;
+  display: flex; align-items: flex-start; justify-content: center;
+  padding-top: 14vh;
+  background: rgba(26, 22, 38, .32);
+  backdrop-filter: blur(8px);
+  opacity: 0; transition: opacity .18s ease;
+}
+.sp-cmd.is-on { opacity: 1; }
+.sp-cmd__panel {
+  width: min(560px, 90%);
+  border-radius: 20px; overflow: hidden;
+  background: rgba(255,255,255,.62);
+  backdrop-filter: blur(30px) saturate(1.5);
+  -webkit-backdrop-filter: blur(30px) saturate(1.5);
+  border: 1px solid rgba(255,255,255,.65);
+  box-shadow: 0 36px 80px -28px rgba(20,15,40,.6), inset 0 1px 0 rgba(255,255,255,.7);
+  transform: translateY(-10px) scale(.98); transition: transform .2s cubic-bezier(.2,.8,.2,1);
+}
+.sp-cmd.is-on .sp-cmd__panel { transform: none; }
+.sp-cmd__bar { display: flex; align-items: center; gap: 12px; padding: 16px 18px; border-bottom: 1px solid rgba(255,255,255,.5); }
+.sp-cmd__ic { font-size: 1.05rem; opacity: .6; }
+.sp-cmd__in { flex: 1; border: none; outline: none; background: transparent; font-size: 1.15rem; color: #2e2a3a; }
+.sp-cmd__in::placeholder { color: rgba(90,80,120,.5); }
+.sp-cmd__kbd {
+  font-size: .64rem; font-weight: 700; letter-spacing: .04em; color: rgba(90,80,120,.7);
+  background: rgba(255,255,255,.6); border: 1px solid rgba(255,255,255,.7);
+  border-radius: 7px; padding: 4px 8px; white-space: nowrap;
+}
+.sp-cmd__results { max-height: 46vh; overflow-y: auto; padding: 8px; }
+.sp-cmd__row {
+  width: 100%; display: flex; align-items: center; gap: 12px;
+  padding: 10px 12px; border: none; background: transparent; border-radius: 12px;
+  cursor: pointer; text-align: left; transition: background .12s;
+}
+.sp-cmd__row:hover { background: rgba(255,255,255,.6); }
+.sp-cmd__badge { width: 34px; height: 34px; border-radius: 10px; flex: none; display: grid; place-items: center; color: #fff; font-weight: 800; }
+.sp-cmd__meta { display: flex; flex-direction: column; line-height: 1.25; min-width: 0; }
+.sp-cmd__meta b { font-size: .92rem; color: #2e2a3a; }
+.sp-cmd__meta small { font-size: .72rem; color: rgba(80,70,110,.7); }
+.sp-cmd__empty { padding: 22px; text-align: center; color: rgba(80,70,110,.6); font-size: .9rem; }
+
+/* ---- 콘텐츠 우클릭 드롭다운 (맥락 + 액션) ---- */
+.sp-menu {
+  position: absolute; z-index: 9999; width: 248px;
+  border-radius: 16px; overflow: hidden;
+  background: rgba(255,255,255,.72);
+  backdrop-filter: blur(30px) saturate(1.6);
+  -webkit-backdrop-filter: blur(30px) saturate(1.6);
+  border: 1px solid rgba(255,255,255,.7);
+  box-shadow: 0 24px 56px -18px rgba(20,15,40,.55), inset 0 1px 0 rgba(255,255,255,.8);
+  color: #2e2a3a;
+  opacity: 0; transform: scale(.96) translateY(-4px);
+  transform-origin: top left; transition: opacity .14s, transform .14s cubic-bezier(.2,.8,.2,1);
+}
+.sp-menu.is-on { opacity: 1; transform: none; }
+.sp-menu__head { display: flex; align-items: center; gap: 10px; padding: 13px 14px 10px; }
+.sp-menu__thumb { width: 34px; height: 34px; border-radius: 9px; flex: none; background-size: cover; background-position: center; box-shadow: 0 3px 8px -2px rgba(0,0,0,.4); }
+.sp-menu__ttl { font-size: .92rem; font-weight: 800; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.sp-menu__ctx { padding: 2px 14px 10px; display: flex; flex-direction: column; gap: 6px; }
+.sp-menu__ctxrow { display: flex; justify-content: space-between; gap: 10px; font-size: .76rem; }
+.sp-menu__ctxrow span { color: rgba(80,70,110,.7); flex: none; }
+.sp-menu__ctxrow b { color: #2e2a3a; font-weight: 600; text-align: right; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.sp-menu__sep { height: 1px; background: rgba(120,110,150,.22); margin: 0 10px; }
+.sp-menu__acts { padding: 8px; display: flex; flex-direction: column; gap: 2px; }
+.sp-menu__act {
+  display: flex; align-items: center; gap: 10px;
+  width: 100%; padding: 10px 11px; border: none; background: transparent;
+  border-radius: 10px; cursor: pointer; text-align: left;
+  font-size: .86rem; font-weight: 600; color: #2e2a3a; transition: background .12s;
+}
+.sp-menu__act:hover { background: rgba(120,110,255,.16); }
+.sp-menu__act span { font-size: 1rem; }
+.sp-menu__cmt {
+  width: 100%; min-height: 70px; resize: none; border-radius: 10px;
+  border: 1px solid rgba(120,110,150,.3); background: rgba(255,255,255,.7);
+  padding: 9px 11px; font-size: .84rem; color: #2e2a3a; outline: none; font-family: inherit;
+}
+.sp-menu__save {
+  margin-top: 8px; width: 100%; padding: 9px; border: none; border-radius: 10px;
+  background: #6b6bff; color: #fff; font-weight: 700; font-size: .84rem; cursor: pointer;
+}
+.sp-menu__save:hover { background: #5a5aff; }
+
+/* 토스트 */
+.sp-toast {
+  position: absolute; left: 50%; bottom: 36px; transform: translateX(-50%) translateY(10px);
+  z-index: 10000; padding: 11px 20px; border-radius: 999px;
+  background: rgba(28,24,40,.86); color: #fff; font-size: .86rem; font-weight: 600;
+  box-shadow: 0 14px 34px -12px rgba(0,0,0,.6); opacity: 0;
+  transition: opacity .22s, transform .22s cubic-bezier(.2,.8,.2,1); pointer-events: none;
+}
+.sp-toast.is-on { opacity: 1; transform: translateX(-50%) translateY(0); }
+
+/* ---- 콘텐츠 우클릭: 히스토리 스택 (네모 카드 · 휠 스크롤 · 아래=과거) ---- */
+.sp-hist {
+  position: absolute; z-index: 9999; width: 264px;
+  display: flex; flex-direction: column;
+  border-radius: 18px; overflow: hidden;
+  background: rgba(255,255,255,.72);
+  backdrop-filter: blur(30px) saturate(1.6);
+  -webkit-backdrop-filter: blur(30px) saturate(1.6);
+  border: 1px solid rgba(255,255,255,.7);
+  box-shadow: 0 26px 60px -18px rgba(20,15,40,.55), inset 0 1px 0 rgba(255,255,255,.8);
+  color: #2e2a3a;
+  opacity: 0; transform: scale(.97) translateY(-4px);
+  transform-origin: top left; transition: opacity .15s, transform .15s cubic-bezier(.2,.8,.2,1);
+}
+.sp-hist.is-on { opacity: 1; transform: none; }
+.sp-hist__head {
+  display: flex; align-items: baseline; gap: 8px; padding: 13px 15px 9px;
+  font-size: .92rem; font-weight: 800;
+}
+.sp-hist__head small { font-size: .72rem; font-weight: 500; color: rgba(80,70,110,.7); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.sp-hist__scroll {
+  max-height: 256px; overflow-y: auto; padding: 4px 12px; display: flex; flex-direction: column; gap: 8px;
+  position: relative;
+}
+.sp-hist__scroll::-webkit-scrollbar { width: 7px; }
+.sp-hist__scroll::-webkit-scrollbar-thumb { background: rgba(120,110,150,.3); border-radius: 7px; }
+.sp-hist__card {
+  display: flex; align-items: center; gap: 11px; flex: none;
+  padding: 9px; border-radius: 13px;
+  background: rgba(255,255,255,.6); border: 1px solid rgba(255,255,255,.7);
+  box-shadow: 0 6px 14px -8px rgba(40,30,60,.4);
+  cursor: context-menu; transition: transform .12s, box-shadow .12s;
+}
+.sp-hist__card:hover { transform: translateY(-2px); box-shadow: 0 12px 22px -10px rgba(40,30,60,.5); }
+.sp-hist__thumb { width: 46px; height: 46px; flex: none; border-radius: 10px; background-size: cover; background-position: center; box-shadow: inset 0 0 0 1px rgba(255,255,255,.5); }
+.sp-hist__meta { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.sp-hist__meta b { font-size: .82rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.sp-hist__meta small { font-size: .68rem; color: rgba(80,70,110,.72); }
+.sp-hist__axis {
+  display: flex; justify-content: space-between; padding: 8px 15px 12px;
+  font-size: .64rem; font-weight: 700; color: rgba(90,80,120,.6); letter-spacing: .04em;
+}
+
+/* ---- 히스토리 카드 우클릭: 액션(수집/댓글) ---- */
+.sp-actmenu {
+  position: absolute; z-index: 10000; width: 200px; padding: 8px;
+  display: flex; flex-direction: column; gap: 2px;
+  border-radius: 14px;
+  background: rgba(255,255,255,.78);
+  backdrop-filter: blur(30px) saturate(1.6);
+  -webkit-backdrop-filter: blur(30px) saturate(1.6);
+  border: 1px solid rgba(255,255,255,.75);
+  box-shadow: 0 22px 50px -16px rgba(20,15,40,.55), inset 0 1px 0 rgba(255,255,255,.8);
+  color: #2e2a3a;
+  opacity: 0; transform: scale(.96); transform-origin: top left; transition: opacity .12s, transform .12s;
+}
+.sp-actmenu.is-on { opacity: 1; transform: none; }
+.sp-actmenu__act {
+  display: flex; align-items: center; gap: 10px; width: 100%;
+  padding: 10px 11px; border: none; background: transparent; border-radius: 10px;
+  cursor: pointer; text-align: left; font-size: .86rem; font-weight: 600; color: #2e2a3a; transition: background .12s;
+}
+.sp-actmenu__act:hover { background: rgba(120,110,255,.16); }
+.sp-actmenu__act span { font-size: 1rem; }
+.sp-actmenu__cmt {
+  width: 100%; min-height: 64px; resize: none; border-radius: 10px;
+  border: 1px solid rgba(120,110,150,.3); background: rgba(255,255,255,.7);
+  padding: 9px 11px; font-size: .84rem; color: #2e2a3a; outline: none; font-family: inherit;
+}
+.sp-actmenu__save {
+  margin-top: 8px; width: 100%; padding: 9px; border: none; border-radius: 10px;
+  background: #6b6bff; color: #fff; font-weight: 700; font-size: .84rem; cursor: pointer;
+}
+.sp-actmenu__save:hover { background: #5a5aff; }

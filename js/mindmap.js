@@ -73,7 +73,7 @@ window.Blip = window.Blip || {};
       this.menu = document.createElement('div');
       this.menu.className = 'mm-menu';
       this.menu.style.display = 'none';
-      document.body.appendChild(this.menu);
+      (document.getElementById("osWinBody")||document.body).appendChild(this.menu);
     }
 
     _buildNodes() {

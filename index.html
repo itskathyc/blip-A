@@ -9,6 +9,41 @@
 </head>
 
 <body>
+  <!-- ===== blip OS 데스크톱 ===== -->
+  <div id="desktop">
+    <div class="os-menubar">
+      <span class="os-menubar__logo">◑ blip OS</span>
+      <span class="os-menubar__sp"></span>
+      <span class="os-menubar__clock">Cheddar</span>
+    </div>
+
+    <!-- blip 브라우저 창 (macOS Safari 형식) -->
+    <div id="osWin" class="oswin">
+      <div class="oswin__bar">
+        <div class="oswin__lights">
+          <button class="oswin__light oswin__light--close" data-win="close" title="닫기"></button>
+          <button class="oswin__light oswin__light--min"   data-win="min"   title="최소화"></button>
+          <button class="oswin__light oswin__light--max"   data-win="max"   title="최대화"></button>
+        </div>
+        <div class="oswin__nav">
+          <button class="oswin__navbtn" data-nav="back" title="뒤로">‹</button>
+          <button class="oswin__navbtn" data-nav="fwd"  title="앞으로">›</button>
+        </div>
+        <div class="oswin__addr">
+          <svg class="oswin__lock" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+            <rect x="5" y="11" width="14" height="9" rx="2" /><path d="M8 11V7a4 4 0 0 1 8 0v4" />
+          </svg>
+          <input id="osUrl" class="oswin__url" value="blip://cheddar/서재" spellcheck="false" />
+          <button class="oswin__reload" title="새로고침">⟳</button>
+        </div>
+        <div class="oswin__tools">
+          <button class="oswin__toolbtn" title="공유">⤴</button>
+          <button class="oswin__toolbtn" title="새 탭">＋</button>
+          <button class="oswin__toolbtn" title="탭 개요">▣</button>
+        </div>
+      </div>
+      <div id="osWinBody" class="oswin__body">
+
   <!-- 메인 캔버스 (제스처를 받는 영역) -->
   <main id="stage">
 
@@ -96,13 +131,16 @@
       <div class="ig-top">
         <div class="ig-top__logo">Instagram</div>
         <div class="ig-top__search"><span>🔍</span> 검색</div>
-        <div class="ig-top__icons"><span>🏠</span><span>✈️</span><span>➕</span><span>❤️</span><span class="ig-top__me">다</span></div>
+        <div class="ig-top__icons"><span>🏠</span><span>✈️</span><span>➕</span><span>❤️</span><span
+            class="ig-top__me">다</span></div>
       </div>
 
       <div class="ig-wrap">
         <!-- 프로필 헤더 -->
         <header class="ig-head">
-          <div class="ig-head__pic"><div class="ig-avatar">다락</div></div>
+          <div class="ig-head__pic">
+            <div class="ig-avatar">다락</div>
+          </div>
           <div class="ig-head__info">
             <div class="ig-head__row1">
               <span class="ig-username">hapjeong_darak</span>
@@ -171,7 +209,7 @@
   <section id="editorPanel" class="panel panel--bottom is-minimap">
     <header class="panel__bar">
       <!-- 미니맵 모드 라벨 (윗 border 를 잡아 끌면 확대) -->
-      <span class="minimap-label" aria-hidden="true">◈ Mindmap</span>
+      <span class="minimap-label" aria-hidd en="true">◈ Mindmap</span>
       <!-- URL / 맥락 히스토리 바 -->
       <div class="brl-wrap" id="brlWrap">
         <div class="brl" id="brl">
@@ -236,8 +274,7 @@
       <span class="capnote__title">📝 캡처 메모</span>
       <span class="capnote__timer" id="capnoteTimer"></span>
     </div>
-    <textarea class="capnote__area"
-      placeholder="이 캡처를 왜 남겼는지… (3초간 입력이 없으면 메모 없이 닫힘 · Enter 저장)"></textarea>
+    <textarea class="capnote__area" placeholder="이 캡처를 왜 남겼는지… (3초간 입력이 없으면 메모 없이 닫힘 · Enter 저장)"></textarea>
   </div>
 
   <!-- Garden — 나만의 통합 플랫폼 (좌→우 드래그로 등장) -->
@@ -257,6 +294,19 @@
     <div class="capture__bar capture__bar--top"></div>
     <div class="capture__bar capture__bar--bottom"></div>
   </div>
+
+      </div><!-- /osWinBody -->
+    </div><!-- /osWin -->
+
+    <!-- 최소화 시: 하단 독 (한 번 클릭으로 복귀) -->
+    <button id="osDock" class="osdock" hidden><span>◑</span> blip</button>
+
+    <!-- 닫으면 데스크톱에 남는 앱 아이콘 (더블클릭으로 실행) -->
+    <button id="osApp" class="osapp" hidden>
+      <span class="osapp__tile">B</span>
+      <span class="osapp__label">blip</span>
+    </button>
+  </div><!-- /desktop -->
 
   <script src="js/startpage.js"></script>
   <script src="js/atom.js"></script>

@@ -478,7 +478,7 @@ window.Blip = window.Blip || {};
         <div class="gd-pop__caps">
           ${caps.map((c, i) => `<button class="gd-pop__cap" data-i="${i}" style="background-image:${c.css}"></button>`).join('')}
         </div>`;
-      document.body.appendChild(pop);
+      (document.getElementById("osWinBody")||document.body).appendChild(pop);
       this._pop = pop;
       const r = anchor.getBoundingClientRect();
       pop.style.left = Math.min(r.left, window.innerWidth - 246) + 'px';
@@ -751,7 +751,7 @@ window.Blip = window.Blip || {};
       const ghost = document.createElement('div');
       ghost.className = 'gd-toolghost';
       ghost.textContent = this._kindLabel(type);
-      document.body.appendChild(ghost);
+      (document.getElementById("osWinBody")||document.body).appendChild(ghost);
       this.tool = { type, ghost, x: e.clientX, y: e.clientY, moved: false };
       this._ghostAt(e.clientX, e.clientY);
     }
