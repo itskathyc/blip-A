@@ -236,6 +236,12 @@
         e.stopPropagation();
         document.dispatchEvent(new CustomEvent('blip:openGarden'));
       });
+      // 내 Frame 우클릭 → '반응 확인' 버튼
+      b.addEventListener('contextmenu', (e) => {
+        e.preventDefault(); e.stopPropagation();
+        const name = b.querySelector('.sp-frame__name')?.textContent || 'Frame';
+        openFrameMenu(name, e.clientX, e.clientY);
+      });
     });
 
     // 책 클릭(=선택) → 그 사람의 "캡처된 가든"을 확대해서 보여줌 (페이지 이동 아님)
@@ -416,9 +422,7 @@
         <span class="sp-win__id"><b>${b.name}</b><small>${b.handle} · ${meta.label} · 캡처된 가든</small></span>
         <button class="sp-win__x" title="닫기">×</button>
       </header>
-      <div class="sp-win__board">
-        ${tiles.map((t) => `<div class="sp-tile${t.big ? ' is-big' : ''}" style="background-image:${t.c}"><span>${t.t || ''}</span></div>`).join('')}
-      </div>
+      <div class="sp-win__board"></div>
       <span class="sp-win__resize" title="크기 조절"></span>`;
     mount.appendChild(win);
     requestAnimationFrame(() => win.classList.add('is-on'));
@@ -460,13 +464,60 @@
       window.addEventListener('mousemove', onMove); window.addEventListener('mouseup', onUp);
     });
 
-    // 요소(타일) 우클릭 → 히스토리(맥락) 스택
-    win.querySelectorAll('.sp-tile').forEach((tl, i) => {
+    // 콘텐츠(타일) — 창 안에서 위치·크기 조절 가능한 자유 배치
+    const board = win.querySelector('.sp-win__board');
+    let _tz = 1;
+    const PAD = 16, TW = 118, TH = 104, GAP = 12, COLS = 3;
+    tiles.forEach((t, i) => {
+      const col = i % COLS, row = Math.floor(i / COLS);
+      const tl = document.createElement('div');
+      tl.className = 'sp-tile sp-tile--free';
+      tl.style.backgroundImage = t.c;
+      tl.style.left = (PAD + col * (TW + GAP)) + 'px';
+      tl.style.top  = (PAD + row * (TH + GAP)) + 'px';
+      // 처음 보여질 땐 균일 그리드 → 콘텐츠끼리 절대 겹치지 않음 (이후 자유 리사이즈)
+      tl.style.width  = TW + 'px';
+      tl.style.height = TH + 'px';
+      tl.style.zIndex = String(++_tz);
+      tl.innerHTML = `<span>${t.t || ''}</span><span class="sp-tile__rz" title="크기 조절"></span>`;
+      board.appendChild(tl);
+
+      // 이동 (좌 드래그)
+      tl.addEventListener('mousedown', (e) => {
+        if (e.button !== 0 || e.target.closest('.sp-tile__rz')) return;
+        e.preventDefault(); e.stopPropagation();
+        win.style.zIndex = String(++_winZ);
+        tl.style.zIndex = String(++_tz);
+        const br = board.getBoundingClientRect();
+        const r0 = tl.getBoundingClientRect();
+        const offX = e.clientX - r0.left, offY = e.clientY - r0.top;
+        const onMove = (ev) => {
+          const x = Math.max(0, ev.clientX - br.left + board.scrollLeft - offX);
+          const y = Math.max(0, ev.clientY - br.top + board.scrollTop - offY);
+          tl.style.left = x + 'px'; tl.style.top = y + 'px';
+        };
+        const onUp = () => { window.removeEventListener('mousemove', onMove); window.removeEventListener('mouseup', onUp); };
+        window.addEventListener('mousemove', onMove); window.addEventListener('mouseup', onUp);
+      });
+      // 크기 조절 (우측 하단 핸들)
+      tl.querySelector('.sp-tile__rz').addEventListener('mousedown', (e) => {
+        e.preventDefault(); e.stopPropagation();
+        const sw = tl.offsetWidth, sh = tl.offsetHeight, sx = e.clientX, sy = e.clientY;
+        const onMove = (ev) => {
+          tl.style.width  = Math.max(76, Math.min(sw + (ev.clientX - sx), 520)) + 'px';
+          tl.style.height = Math.max(64, Math.min(sh + (ev.clientY - sy), 460)) + 'px';
+        };
+        const onUp = () => { window.removeEventListener('mousemove', onMove); window.removeEventListener('mouseup', onUp); };
+        window.addEventListener('mousemove', onMove); window.addEventListener('mouseup', onUp);
+      });
+      // 우클릭 → 히스토리
       tl.addEventListener('contextmenu', (e) => {
         e.preventDefault(); e.stopPropagation();
         openHistory(b, tiles[i], e.clientX, e.clientY);
       });
     });
+    const rows = Math.ceil(tiles.length / COLS);
+    board.style.minHeight = (PAD * 2 + rows * (TH + GAP)) + 'px';
   }
 
   // 작은 토스트
@@ -477,6 +528,64 @@
     mount.appendChild(t);
     requestAnimationFrame(() => t.classList.add('is-on'));
     setTimeout(() => { t.classList.remove('is-on'); setTimeout(() => t.remove(), 250); }, 1600);
+  }
+
+  // 내 Frame 우클릭 → '반응 확인' 버튼
+  function openFrameMenu(name, x, y) {
+    document.querySelectorAll('.sp-actmenu').forEach((m) => m.remove());
+    const mount = document.getElementById('osWinBody') || document.body;
+    const m = document.createElement('div');
+    m.className = 'sp-actmenu';
+    m.innerHTML = `<button class="sp-actmenu__act" data-act="react"><span>📊</span> 반응 확인</button>`;
+    mount.appendChild(m);
+    const r = mount.getBoundingClientRect();
+    m.style.left = Math.max(8, Math.min(x - r.left, r.width - 200)) + 'px';
+    m.style.top  = Math.max(8, Math.min(y - r.top, r.height - 70)) + 'px';
+    requestAnimationFrame(() => m.classList.add('is-on'));
+    const close = () => { m.remove(); document.removeEventListener('mousedown', away); document.removeEventListener('keydown', esc); };
+    const away = (ev) => { if (!m.contains(ev.target)) close(); };
+    const esc = (ev) => { if (ev.key === 'Escape') close(); };
+    setTimeout(() => { document.addEventListener('mousedown', away); document.addEventListener('keydown', esc); }, 0);
+    m.querySelector('[data-act="react"]').addEventListener('click', () => { close(); openReactions(name); });
+  }
+
+  // 발행한 Frame의 반응 — "반응은 소비한 뒤에 나타난다"
+  function openReactions(name) {
+    document.querySelectorAll('.sp-react').forEach((m) => m.remove());
+    const mount = document.getElementById('osWinBody') || document.body;
+    const reacts = [
+      { who: '@user_kim',  txt: '이 세팅으로 첫 영상 찍었어요 🙏', time: '어제',   kind: '수집' },
+      { who: '@photo_lee', txt: '노출 삼각형 부분에서 막혔는데 풀렸어요', time: '3일 전', kind: '댓글' },
+      { who: '@minji.v',   txt: '픽처프로파일 그대로 따라함', time: '5일 전', kind: '수집' },
+      { who: '@docu_oh',   txt: '내 가든에도 담아둘게요', time: '1주 전', kind: '수집' },
+    ];
+    const ov = document.createElement('div');
+    ov.className = 'sp-react';
+    ov.innerHTML = `
+      <div class="sp-react__panel">
+        <header class="sp-react__bar">
+          <span class="sp-react__id"><b>반응 · ${name}</b><small>소비한 뒤에 남은 반응</small></span>
+          <button class="sp-react__x" title="닫기">×</button>
+        </header>
+        <div class="sp-react__stats">
+          <span>👀 소비 <b>1,284</b></span><span>💬 반응 <b>${reacts.length}</b></span><span>📥 수집 <b>37</b></span>
+        </div>
+        <div class="sp-react__list">
+          ${reacts.map((r) => `
+            <div class="sp-react__row">
+              <span class="sp-react__av">${r.who[1].toUpperCase()}</span>
+              <span class="sp-react__body"><b>${r.who}</b><span>${r.txt}</span></span>
+              <span class="sp-react__meta">${r.kind} · ${r.time}</span>
+            </div>`).join('')}
+        </div>
+      </div>`;
+    mount.appendChild(ov);
+    requestAnimationFrame(() => ov.classList.add('is-on'));
+    const close = () => { ov.classList.remove('is-on'); setTimeout(() => ov.remove(), 220); };
+    ov.addEventListener('mousedown', (e) => { e.stopPropagation(); if (e.target === ov) close(); });
+    ov.querySelector('.sp-react__x').addEventListener('click', close);
+    const esc = (e) => { if (e.key === 'Escape') { close(); document.removeEventListener('keydown', esc); } };
+    document.addEventListener('keydown', esc);
   }
 
   // 콘텐츠 1개의 "히스토리" 맥락 카드들 (위=최근, 아래=과거)

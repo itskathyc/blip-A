@@ -3359,3 +3359,52 @@ html, body { height: 100%; }
   background: #6b6bff; color: #fff; font-weight: 700; font-size: .84rem; cursor: pointer;
 }
 .sp-actmenu__save:hover { background: #5a5aff; }
+
+/* ---- 책 창 보드: 자유 배치(이동·리사이즈) ---- */
+.sp-win__board { position: relative; padding: 0 !important; }
+.sp-tile--free {
+  position: absolute; min-height: 0 !important; cursor: grab;
+  overflow: hidden;
+}
+.sp-tile--free:active { cursor: grabbing; }
+.sp-tile__rz {
+  position: absolute; right: 0; bottom: 0; width: 16px; height: 16px;
+  cursor: nwse-resize; z-index: 2;
+  background: linear-gradient(135deg, transparent 50%, rgba(255,255,255,.7) 50%, rgba(255,255,255,.7) 62%, transparent 62%, transparent 74%, rgba(255,255,255,.7) 74%, rgba(255,255,255,.7) 86%, transparent 86%);
+}
+
+/* ---- 내 Frame 반응 확인 패널 ---- */
+.sp-react {
+  position: absolute; inset: 0; z-index: 60;
+  display: grid; place-items: center; padding: 6vh 5vw;
+  background: rgba(26,22,38,.3); backdrop-filter: blur(8px);
+  opacity: 0; transition: opacity .2s;
+}
+.sp-react.is-on { opacity: 1; }
+.sp-react__panel {
+  width: min(440px, 92%); max-height: 80%;
+  display: flex; flex-direction: column; overflow: hidden;
+  border-radius: 22px;
+  background: rgba(255,255,255,.66);
+  backdrop-filter: blur(30px) saturate(1.6);
+  -webkit-backdrop-filter: blur(30px) saturate(1.6);
+  border: 1px solid rgba(255,255,255,.7);
+  box-shadow: 0 34px 80px -26px rgba(20,15,40,.6), inset 0 1px 0 rgba(255,255,255,.8);
+  color: #2e2a3a; transform: scale(.97); transition: transform .2s cubic-bezier(.2,.8,.2,1);
+}
+.sp-react.is-on .sp-react__panel { transform: none; }
+.sp-react__bar { display: flex; align-items: center; gap: 10px; padding: 16px 18px; border-bottom: 1px solid rgba(255,255,255,.5); }
+.sp-react__id { display: flex; flex-direction: column; line-height: 1.25; }
+.sp-react__id b { font-size: 1rem; }
+.sp-react__id small { font-size: .74rem; color: rgba(80,70,110,.7); }
+.sp-react__x { margin-left: auto; width: 30px; height: 30px; border-radius: 50%; border: 1px solid rgba(120,110,150,.3); background: rgba(255,255,255,.5); color: #2e2a3a; font-size: 1.1rem; cursor: pointer; }
+.sp-react__stats { display: flex; gap: 16px; padding: 12px 18px; font-size: .8rem; color: rgba(70,60,100,.8); border-bottom: 1px solid rgba(255,255,255,.5); }
+.sp-react__stats b { color: #2e2a3a; }
+.sp-react__list { overflow-y: auto; padding: 8px; }
+.sp-react__row { display: flex; align-items: center; gap: 11px; padding: 11px 10px; border-radius: 13px; }
+.sp-react__row:hover { background: rgba(255,255,255,.55); }
+.sp-react__av { width: 34px; height: 34px; flex: none; border-radius: 50%; display: grid; place-items: center; font-weight: 800; color: #fff; background: linear-gradient(135deg,#7b8cff,#b07ab0); }
+.sp-react__body { display: flex; flex-direction: column; gap: 2px; min-width: 0; flex: 1; }
+.sp-react__body b { font-size: .8rem; }
+.sp-react__body span { font-size: .82rem; color: #4a4238; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.sp-react__meta { font-size: .68rem; color: rgba(80,70,110,.7); white-space: nowrap; }
